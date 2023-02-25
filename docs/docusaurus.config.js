@@ -6,8 +6,8 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "My Site",
-  tagline: "Dinosaurs are cool",
+  title: "FireSync",
+  tagline: "future of collaboration",
   url: "https://www.firesync.cloud",
   baseUrl: "/s/",
   onBrokenLinks: "warn",
@@ -38,16 +38,17 @@ const config = {
         },
       }),
     ],
+
     [
-      'redocusaurus',
+      "redocusaurus",
       {
         // Plugin Options for loading OpenAPI files
         specs: [
           {
-            spec: '../firesync-server/openapi.json',
-            route: '/api/',
+            spec: "../firesync-server/openapi.json",
+            route: "/api/",
           },
-        ]
+        ],
       },
     ],
   ],
