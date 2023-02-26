@@ -27,10 +27,10 @@ See our Getting Started **TODO** docs for a more comprehensive guide, but here's
 
 ### Running the backend
 
-Install the `firesync-server` package (**TODO: Publish this!**):
+Install the `@firesync/server` package (**TODO: Publish this!**):
 
 ```bash
-$ npm install firesync-server
+$ npm install @firesync/server
 ```
 
 You will need a Postgres database. If you don't have one running you can start one quickly using docker:
@@ -39,19 +39,19 @@ You will need a Postgres database. If you don't have one running you can start o
 $ docker run --name firesync-postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres
 ```
 
-Run `firesync-server setup` to create the necessary tables in Postgres and set up the default project:
+Run `@firesync/server setup` to create the necessary tables in Postgres and set up the default project:
 
 ```bash
 $ export POSTGRES_USER=postgres
 $ export POSTGRES_PASSWORD=postgres
 $ export POSTGRES_DATABASE=postgres
-$ npx firesync-server setup
+$ npx @firesync/server setup
 ```
 
 You can now start FireSync:
 
 ```
-$ npx firesync-server server
+$ npx @firesync/server server
 ```
 
 FireSync will be running at (localhost:5000)[http://localhost:5000].
@@ -61,7 +61,7 @@ FireSync will be running at (localhost:5000)[http://localhost:5000].
 To allow users to log in via Google Oauth, [create some Google OAuth Client Id credentials](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and configure them for your project. You'll need to specify `https://acme-dev.localtest.me:5000/auth/google/callback` as an 'Authorized redirect URI' for the OAuth credentials.
 
 ```
-$ npx firesync-server google_auth configure --client-id <your-id>.apps.googleusercontent.com --client-secret <your-secret>
+$ npx @firesync/server google_auth configure --client-id <your-id>.apps.googleusercontent.com --client-secret <your-secret>
 ```
 
 ### Building your app
