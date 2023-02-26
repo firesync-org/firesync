@@ -13,6 +13,7 @@ import { Server } from 'net'
 import { debugRouter } from './http/debug/debugRouter'
 import { invitesController } from './http/controllers/invites'
 import { projectsController } from './http/controllers/projects'
+import { config } from '../config'
 
 export { logging } from './lib/Logging/Logger'
 
@@ -29,7 +30,7 @@ export const FiresyncServer = ({
   app.use(expressLayouts)
   app.set('views', path.join(__dirname, '../../views'))
 
-  if (process.env.TRUST_PROXY === 'true') {
+  if (config.TRUST_PROXY) {
     // Needed for secure: true in cookie
     app.set('trust proxy', 1)
   }

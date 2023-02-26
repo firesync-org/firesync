@@ -2,13 +2,14 @@ import { logging } from '../../lib/Logging/Logger'
 import { db } from '../../../db/db'
 import { requestHandler } from '../helpers/requestHandler'
 import { BadRequestError } from '../helpers/errors'
+import { config } from '../../../config'
 
 const logger = logging.child('loadProject')
 
 export const loadProject = requestHandler(async (req, res, next) => {
   let hostName = req.headers.host
 
-  if (process.env.TRUST_PROXY === 'true') {
+  if (config.TRUST_PROXY) {
     const forwardedHost = req.headers['x-forwarded-host']
     if (typeof forwardedHost === 'string') {
       hostName = forwardedHost
