@@ -1,9 +1,7 @@
 {
-  "name": "firesync-server",
-  "version": "0.0.1",
+  "name": "@firesync/server",
+  "version": "0.0.1-alpha.2",
   "description": "",
-  "private": "true",
-  "main": "src/index.js",
   "scripts": {
     "clean": "rimraf dist/",
     "build": "npm run clean && tsc --project tsconfig.build.json",
@@ -55,7 +53,6 @@
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.38.1",
     "@typescript-eslint/parser": "^5.52.0",
-    "bunyan": "^1.8.15",
     "chai": "^4.3.7",
     "eslint": "^8.24.0",
     "eslint-config-oclif": "^4",
@@ -85,6 +82,7 @@
     "@oclif/core": "^2",
     "@oclif/plugin-help": "^5",
     "@oclif/plugin-plugins": "^2.3.0",
+    "bunyan": "^1.8.15",
     "connect-pg-simple": "^8.0.0",
     "cors": "^2.8.5",
     "ejs": "^3.1.8",
