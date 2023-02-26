@@ -3,6 +3,7 @@ import expressSession from 'express-session'
 import { IncomingMessage } from 'http'
 import pgSession from 'connect-pg-simple'
 import { db } from '../../db/db'
+import { config } from '../../config'
 
 declare module 'express-session' {
   interface SessionData {
@@ -19,7 +20,7 @@ const PGSession = pgSession(expressSession)
 let _sessionParser: RequestHandler | undefined
 export const getSessionParser = () => {
   if (_sessionParser === undefined) {
-    const SESSION_SECRET = process.env.SESSION_SECRET
+    const SESSION_SECRET = config.SESSION_SECRET
     if (SESSION_SECRET === undefined) {
       console.error('Please set SESSION_SECRET environment variable')
       process.exit(1)
