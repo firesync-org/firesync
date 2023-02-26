@@ -1,3 +1,7 @@
+<p align="center">
+⚠️ <em>This is an early preview and is not suitable for production use yet! Do no expect backwards compatibility with future versions yet.</em>
+</p>
+
 <h1 align="center">🔥 FireSync</h1>
 
 FireSync gives you everything you need to build a real-time collaborative app out-of-box. You can focus on your application's core business logic while the FireSync open-source back-end and client libraries give you:
