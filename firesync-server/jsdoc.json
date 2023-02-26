@@ -1,0 +1,14 @@
+{
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  },
+  "source": {
+    "include": ["src"],
+    "includePattern": ".(jsx|js|ts|tsx)$"
+  },
+  "sourceType": "module",
+  "opts": {
+    "recurse": true
+  }
+}

@@ -1,0 +1,6 @@
+<form id="redeemInviteForm" method="POST" action="/api/docs/invites/<%= token %>/redeem">
+  <input name="docKey" value="<%= docKey %>" type="hidden" />
+</form>
+<script type="text/javascript">
+  document.getElementById("redeemInviteForm").submit()
+</script>

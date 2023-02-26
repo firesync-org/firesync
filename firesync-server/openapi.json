@@ -1,0 +1,39 @@
+{
+  "info": {
+    "title": "Hello World",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://{project}.firesync.live",
+      "description": "FireSync Cloud server",
+      "variables": {
+        "project": {
+          "description": "Name of your FireSync Cloud project"
+        }
+      }
+    },
+    {
+      "url": "http://localhost:5000",
+      "description": "Local FireSync server"
+    }
+  ],
+  "swagger": "2.0",
+  "paths": {
+    "/api/v1/user": {
+      "get": {
+        "description": "Welcome to swagger-jsdoc!",
+        "responses": {
+          "200": {
+            "description": "Returns a mysterious string."
+          }
+        }
+      }
+    }
+  },
+  "definitions": {},
+  "responses": {},
+  "parameters": {},
+  "securityDefinitions": {},
+  "tags": []
+}
