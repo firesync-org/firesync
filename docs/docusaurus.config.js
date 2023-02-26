@@ -10,7 +10,7 @@ const config = {
   tagline: "Dinosaurs are cool",
   url: "https://www.firesync.cloud",
   baseUrl: "/s/",
-  onBrokenLinks: "throw",
+  onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.ico",
 
