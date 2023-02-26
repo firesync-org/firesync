@@ -1,10 +1,10 @@
 # Configuration
 
-`firesync-server` is configured by setting environment variables, for example:
+`@firesync/server` is configured by setting environment variables, for example:
 
 ```sh
 $ export POSTGRES_DATABASE=acme-db
-$ npx firesync-server server
+$ npx @firesync/server server
 ```
 
 # Available environment variables
@@ -33,4 +33,4 @@ $ npx firesync-server server
 
 ## Deployment Options
 
-* `TRUST_PROXY`: Set to "true" if running behind a proxy. This allows `firesync-server` to set a secure cookie even over an http connection from the proxy, and to look at forwarded headers like `x-forwarded-host`.
+* `TRUST_PROXY`: Set to "true" if running behind a proxy. This allows `@firesync/server` to set a secure cookie even over an http connection from the proxy, and to look at forwarded headers like `x-forwarded-host`.
