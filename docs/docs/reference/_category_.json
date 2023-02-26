@@ -1,0 +1,8 @@
+{
+  "label": "Reference Guides",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Technical reference guides for the APIs and libraries of Firesync. These assume you have a basic understanding of Firesync."
+  }
+}

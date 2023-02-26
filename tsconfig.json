@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "node",
+    "target": "es5",
+    "baseUrl": ".",
+    "paths": {
+      "firesync-client": ["firesync-client/"]
+    },
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true
+  },
+  "exclude": ["**/node_modules", "**/dist", "**/*.config.cjs", "**/*.config.js", "docs/"]
+}
+
+
