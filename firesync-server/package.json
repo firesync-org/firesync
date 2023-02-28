@@ -20,7 +20,8 @@
   },
   "files": [
     "/bin",
-    "/dist"
+    "/dist",
+    "/views"
   ],
   "oclif": {
     "bin": "firesync-server",
