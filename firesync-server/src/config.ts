@@ -15,10 +15,11 @@ export const config = {
   POSTGRES_HOST: process.env.POSTGRES_HOST || 'localhost',
   POSTGRES_PORT: parseInt(process.env.POSTGRES_PORT || '5432'),
   DATABASE_SSL: process.env.DATABASE_SSL === 'true',
-  DATABASE_SSL_REJECT_UNAUTHORIZED: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
+  DATABASE_SSL_REJECT_UNAUTHORIZED:
+    process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
   DATABASE_SSL_CA: process.env.DATABASE_SSL_CA,
   DATABASE_SSL_KEY: process.env.DATABASE_SSL_KEY,
   DATABASE_SSL_CERT: process.env.DATABASE_SSL_CERT,
   SESSION_SECRET: process.env.SESSION_SECRET,
-  TRUST_PROXY: process.env.DATABASE_SSL === 'true'
+  TRUST_PROXY: process.env.TRUST_PROXY === 'true'
 }
