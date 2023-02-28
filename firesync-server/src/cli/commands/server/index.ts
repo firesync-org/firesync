@@ -3,6 +3,7 @@ import { Command, Flags } from '@oclif/core'
 import { FiresyncServer } from '../../../server'
 
 import { logging } from '../../../server/lib/Logging/Logger'
+import { config } from '../../../config'
 
 const logger = logging.child('cli')
 
@@ -37,6 +38,9 @@ export default class Server extends Command {
     const host = flags.host
     const port = flags.port
     const enableDebugRouter = flags['debug-router']
+
+    config.PORT = port
+    config.HOST = host
 
     const server = FiresyncServer({
       enableDebugRouter

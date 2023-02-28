@@ -35,7 +35,7 @@ export type Project = {
 export type AuthProviderGoogle = {
   client_id: string
   client_secret: string
-  success_redirect_url: string
+  success_redirect_url?: string
   project_id: string
   created_at: string
   updated_at: string

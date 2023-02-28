@@ -12,6 +12,7 @@ import {
   ProjectUserAuthProvider,
   db
 } from '../../../db/db'
+import { config } from '../../../config'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -44,7 +45,7 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
       passport.Strategy
     >
 
-    const projectId = req.firesync.project.id
+    const project = req.firesync.project
     const projectName = req.firesync.project.name
     const strategyName = `google:${projectName}`
 
@@ -56,7 +57,7 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
         'client_secret',
         'success_redirect_url'
       )
-      .where('project_id', projectId)
+      .where('project_id', project.id)
       .first()
 
     if (authCredentials === undefined) {
@@ -68,14 +69,21 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
     const reqWithAuthCreds = req as RequestWithAuthCredentials
     reqWithAuthCreds.authCredentials = authCredentials
 
+    let host = project.host
+    if (!config.TRUST_PROXY && config.PORT !== 80) {
+      // If we're not running behind a proxy, and not on the deafult http port,
+      // then we're probably in dev, and the project is available at
+      // <project.host>:5000, which the callback URL should reflect
+      host = `${project.host}:${config.PORT}`
+    }
+
     strategies[strategyName] = new GoogleStrategy(
       {
         clientID: authCredentials.client_id,
         clientSecret: authCredentials.client_secret,
-        // TODO - make configurable for production
-        callbackURL: `https://${projectName}.api.localtest.me/auth/google/callback`
+        callbackURL: `//${host}/auth/google/callback`
       },
-      loadGoogleUser(projectId)
+      loadGoogleUser(project.id)
     )
 
     passport.authenticate(strategyName, options)(req, res, next)
@@ -154,7 +162,16 @@ export const authController = {
   authGoogleCallback: [
     loadGoogleStrategyForProject({ failureRedirect: '/login' }),
     requestHandler<RequestWithAuthCredentials>((req, res) => {
-      res.redirect(req.authCredentials.success_redirect_url)
+      if (
+        req.authCredentials.success_redirect_url &&
+        req.authCredentials.success_redirect_url !== ''
+      ) {
+        res.redirect(req.authCredentials.success_redirect_url)
+      } else {
+        res.render('projects/noGoogleSuccessRedirectUrl', {
+          projectName: req.firesync.project.name
+        })
+      }
     })
   ]
 }

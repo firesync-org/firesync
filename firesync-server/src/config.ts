@@ -21,5 +21,7 @@ export const config = {
   DATABASE_SSL_KEY: process.env.DATABASE_SSL_KEY,
   DATABASE_SSL_CERT: process.env.DATABASE_SSL_CERT,
   SESSION_SECRET: process.env.SESSION_SECRET,
-  TRUST_PROXY: process.env.TRUST_PROXY === 'true'
+  TRUST_PROXY: process.env.TRUST_PROXY === 'true',
+  HOST: process.env.HOST || 'localhost',
+  PORT: parseInt(process.env.POSTGRES_PORT || '5000')
 }

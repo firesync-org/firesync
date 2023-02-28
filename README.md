@@ -42,6 +42,7 @@ $ docker run --name firesync-postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5
 Run `@firesync/server setup` to create the necessary tables in Postgres and set up the default project:
 
 ```bash
+$ export SESSION_SECRET=banana # TODO: Move to a database setting
 $ export POSTGRES_USER=postgres
 $ export POSTGRES_PASSWORD=postgres
 $ export POSTGRES_DATABASE=postgres
@@ -58,7 +59,7 @@ FireSync will be running at (localhost:5000)[http://localhost:5000].
 
 ### User authentication
 
-To allow users to log in via Google Oauth, [create some Google OAuth Client Id credentials](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and configure them for your project. You'll need to specify `https://acme-dev.localtest.me:5000/auth/google/callback` as an 'Authorized redirect URI' for the OAuth credentials.
+To allow users to log in via Google Oauth, [create some Google OAuth Client Id credentials](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and configure them for your project. You'll need to specify `https://localhost:5000/auth/google/callback` as an 'Authorized redirect URI' for the OAuth credentials.
 
 ```
 $ npx @firesync/server google_auth configure --client-id <your-id>.apps.googleusercontent.com --client-secret <your-secret>
