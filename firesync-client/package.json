@@ -1,7 +1,9 @@
 {
-  "name": "firesync-client",
-  "version": "0.0.1",
-  "description": "",
+  "name": "@firesync/server",
+  "version": "0.0.1-alpha.1",
+  "description": "An open source platform for building real-time collaboration apps",
+  "author": "FireSync",
+  "license": "Apache-2.0",
   "main": "dist/cjs/index.js",
   "module": "dist/mjs/index.js",
   "types": "dist/mjs/index.d.ts",
@@ -17,8 +19,6 @@
     "lint:fix": "eslint src/ --fix",
     "test": "jest"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@reactivedata/react": "^0.2.1",
     "@reactivedata/reactive": "^0.2.0",

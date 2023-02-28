@@ -27,7 +27,7 @@ See our Getting Started **TODO** docs for a more comprehensive guide, but here's
 
 ### Running the backend
 
-Install the `@firesync/server` package (**TODO: Publish this!**):
+Install `@firesync/server`:
 
 ```bash
 $ npm install @firesync/server
@@ -74,7 +74,7 @@ $ cd acme-frontend
 $ npm start
 ```
 
-Install the `firesync-client` (**TODO: Publish this!**):
+Install `@firesync/client`:
 
 ```bash
 $ npm install --save firesync-client

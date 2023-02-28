@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { v4 as uuidv4 } from 'uuid'
-import { Y } from 'firesync-client'
+import { Y } from '@firesync/client'
 import { getClient, testWrapper, tryUntil } from './utils'
 
 describe('Client', () => {

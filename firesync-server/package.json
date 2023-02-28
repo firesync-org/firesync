@@ -1,7 +1,9 @@
 {
   "name": "@firesync/server",
   "version": "0.0.1-alpha.2",
-  "description": "",
+  "description": "An open source platform for building real-time collaboration apps",
+  "author": "FireSync",
+  "license": "Apache-2.0",
   "scripts": {
     "clean": "rimraf dist/",
     "build": "npm run clean && tsc --project tsconfig.build.json",
@@ -32,7 +34,6 @@
     ],
     "topicSeparator": " "
   },
-  "author": "",
   "devDependencies": {
     "@daybrush/jsdoc": "^0.4.7",
     "@types/bunyan": "^1.8.8",

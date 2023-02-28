@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import { expect } from 'chai'
-import { Y } from 'firesync-client'
+import { Y } from '@firesync/client'
 import { tryUntil, testWrapper, getClient } from './utils'
 
 describe('Server Syncing', () => {

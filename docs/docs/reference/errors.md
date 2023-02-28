@@ -6,11 +6,11 @@ The client was not authenticated or not authorized to connect or access a doc. T
 
 ## E0002 MessageEncodingError {#E0002}
 
-The client or server could not decode a message it was sent. This is unexpected in normal operation and suggests a mismatch between the protocol versions between the client and server. Make sure your `firesync-client` library is upgraded to the latest version, and `firesync-server` if you are self-hosting.
+The client or server could not decode a message it was sent. This is unexpected in normal operation and suggests a mismatch between the protocol versions between the client and server. Make sure your `@firesync/client` library is upgraded to the latest version, and `@firesync/server` if you are self-hosting.
 
 ## E0003 BadRequestError {#E0003}
 
-The client or server got a message with unexpected content. This is unexpected in normal operation and suggests a mismatch between the protocol versions between the client and server. Make sure your `firesync-client` library is upgraded to the latest version, and `firesync-server` if you are self-hosting.
+The client or server got a message with unexpected content. This is unexpected in normal operation and suggests a mismatch between the protocol versions between the client and server. Make sure your `@firesync/client` library is upgraded to the latest version, and `@firesync/server` if you are self-hosting.
 
 ## E0004 UnexpectedInternalStateError {#E0004}
 

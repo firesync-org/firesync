@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 
-import { Connection } from 'firesync-client'
+import { Connection } from '@firesync/client'
 
 const defaultHost = `${process.env.PROJECT_NAME}.api.localtest.me`
 

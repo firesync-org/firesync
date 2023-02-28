@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { Y, Connection } from 'firesync-client'
+import { Y, Connection } from '@firesync/client'
 import { getClient } from './getClient'
 import { ServerClient } from './serverClient'
 import { tryUntil } from './tryUntil'
