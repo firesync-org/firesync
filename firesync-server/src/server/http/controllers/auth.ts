@@ -63,7 +63,7 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
     if (authCredentials === undefined) {
       return res
         .status(404)
-        .send('Google auth is not configured for this project')
+        .render('projects/noGoogleAuth', { projectName: project.name })
     }
 
     const reqWithAuthCreds = req as RequestWithAuthCredentials

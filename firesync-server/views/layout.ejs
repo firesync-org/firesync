@@ -4,9 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
     <title><%= typeof title === 'undefined' ? 'FireSync' : title %></title>
+
+    <style>
+      html, body {
+        font-family: sans-serif;
+        padding: 0;
+        margin: 0;
+      }
+      .container {
+        margin: auto;
+        margin-top: 2em;
+        max-width: 800px;
+        padding: 1em;
+        text-align: center;
+      }
+      p {
+        margin: 0;
+      }
+      p + p {
+        margin-top: 1em;
+      }
+      pre {
+        text-align: left;
+        padding: 1em;
+        background-color: #fafafa;
+        border: 1px solid #ddd;
+        white-space: pre-wrap;
+      }
+    </style>
   </head>
   <body>
-	  <%- body %>
+    <div class="container">
+      <%- body %>
+    </div>
   </body>
 </html>
