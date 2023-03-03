@@ -57,6 +57,17 @@ export class BadParameterError extends FiresyncError {
   }
 }
 
+export class ApiRequestError extends FiresyncError {
+  statusCode: number
+
+  constructor(message: string, statusCode: number) {
+    super(message, 6)
+    this.statusCode = statusCode
+    this.name = 'ApiRequestError'
+    Object.setPrototypeOf(this, ApiRequestError.prototype)
+  }
+}
+
 type ErrorInterface = new (message: string) => FiresyncError
 
 export const ErrorsByName: Record<string, ErrorInterface> = {

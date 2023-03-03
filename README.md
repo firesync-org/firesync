@@ -75,23 +75,32 @@ $ cd acme-frontend
 $ npm start
 ```
 
+Configure the server to allow the front-end to communicate with it:
+
+```
+npx @firesync/server projects configure --cors-allowed-origins http://localhost:3000
+```
+
+Configure the server to redirect back to your app after authenticating with Google:
+
+```
+npx @firesync/server google_auth configure --success-redirect-url http://localhost:3000
+```
+
 Install `@firesync/client`:
 
 ```bash
-$ npm install --save firesync-client
+$ npm install @firesync/client
 ```
 
 Configure FireSync to point to our back-end:
 
 ```ts
 import Firesync from 'firesync-client'
-export const firesync = new Firesync({
-  project: 'acme-dev',
-  host: 'localtest.me'
+const firesync = new Firesync({
+  host: 'http://localhost:5000'
 })
 ```
-
-**TODO: Going to need to configure `cors-allowed-origins` and `google_auth.success-redirect-url`**
 
 We can then check if we're logged in, and start the log in flow via Google if not:
 

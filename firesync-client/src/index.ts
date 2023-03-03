@@ -1,5 +1,5 @@
-import { number, string } from 'lib0'
 import { Connection } from './connection'
+import { ApiRequestError } from './shared/errors'
 
 // Export the Yjs version we're using because it's important that all code
 // uses the same version, because constructor checks are used to test for
@@ -12,19 +12,31 @@ export { MessageType } from './shared/protocol'
 export { AuthError } from './shared/errors'
 
 type Options = {
-  project: string
-  host?: string
+  baseUrl: string
 }
 
 export default class Firesync {
-  project: string
-  host: string
+  baseUrl: string
   connection: Connection
 
-  constructor({ project, host = 'api.firesync.live' }: Options) {
-    this.project = project
-    this.host = `${this.project}.${host}`
-    this.connection = new Connection(this.host, {})
+  constructor({ baseUrl }: Options) {
+    // TODO: Do some sanity checking about the baseUrl
+    // includes protocol, matches protocol of client, etc
+    this.baseUrl = baseUrl
+    this.connection = new Connection(this.baseUrl, {})
+  }
+
+  async isLoggedIn() {
+    try {
+      await this.getUser()
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.statusCode === 403) {
+        return false
+      } else {
+        throw error
+      }
+    }
+    return true
   }
 
   async getUser() {
@@ -62,7 +74,7 @@ export default class Firesync {
     path: string,
     options: RequestInit = {}
   ) {
-    const res = await fetch(`https://${this.host}/${path}`, {
+    const res = await fetch(`${this.baseUrl}/${path}`, {
       credentials: 'include',
       headers: {
         Accept: 'application/json',
@@ -74,7 +86,8 @@ export default class Firesync {
       const data: ReturnType = await res.json()
       return data
     } else {
-      throw new Error(`Unsuccessful request: ${res.status}`)
+      const error = new ApiRequestError(`Unsuccessful request: ${res.status}`, res.status)
+      throw error
     }
   }
 }

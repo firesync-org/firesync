@@ -57,7 +57,7 @@ type DocState = {
 
 export class Connection extends EventEmitter {
   private ws?: WebSocket | null
-  private host: string
+  private baseUrl: string
   private WebSocket: typeof WebSocket
   private websocketOptions: any
   private docs = new Map<string, DocState>()
@@ -70,7 +70,7 @@ export class Connection extends EventEmitter {
   }
 
   constructor(
-    host: string,
+    baseUrl: string,
     {
       connect = true,
       CustomWebSocket = WebSocket,
@@ -83,7 +83,7 @@ export class Connection extends EventEmitter {
   ) {
     super()
 
-    this.host = host
+    this.baseUrl = baseUrl
     this.WebSocket = CustomWebSocket
     if (!this.WebSocket) {
       throw new BadParameterError(
@@ -784,7 +784,9 @@ export class Connection extends EventEmitter {
       doc.currentSubscriptionState = SubscriptionStates.UNSUBSCRIBED
     })
 
-    const url = `wss://${this.host}/`
+    // http:// -> ws://, https:// -> wss://
+    // TODO: What about // as a protocol?
+    const url = this.baseUrl.replace(/^http/, 'ws')
 
     if (this.ws) {
       throw new UnexpectedInternalStateError(
