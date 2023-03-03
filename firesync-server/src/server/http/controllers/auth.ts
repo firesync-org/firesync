@@ -154,13 +154,9 @@ export const authController = {
    *       200:
    *         description: Returns a mysterious string.
    */
-  getUser: requestHandler((req, res) => {
-    const user = req.user
-    if (user !== undefined) {
-      return res.json({ userId: user.userId })
-    } else {
-      return res.status(403).send('No user')
-    }
+  getUser: requestHandler(async (req, res) => {
+    const userId = await tokens.getUserIdFromRequest(req)
+    res.json({ userId })
   }),
 
   authGoogle: loadGoogleStrategyForProject({ scope: ['profile'] }),

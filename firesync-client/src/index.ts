@@ -103,7 +103,7 @@ export default class Firesync {
       return data
     } else {
       let error: FiresyncError = new ApiRequestError(`Unsuccessful request: ${res.status}`, res.status)
-      if (res.status === 403) {
+      if (res.status === 401 || res.status === 403) {
         error = new AuthError('Not authorized')
       }
       throw error

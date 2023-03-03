@@ -2,14 +2,12 @@ import React, { ReactNode, useEffect, useState } from 'react'
 import { firesync } from './firesync'
 
 export default function LoginWrapper({ children }: { children: ReactNode }) {
-  const [_userId, setUserId] = useState<number | null>(null)
   const [loggedIn, setLoggedIn] = useState(false)
 
   useEffect(() => {
     const getUser = async () => {
-      const { userId } = await firesync.getUser()
-      if (userId !== undefined) {
-        setUserId(userId)
+      const loggedIn = await firesync.isLoggedIn()
+      if (loggedIn) {
         setLoggedIn(true)
       } else {
         setLoggedIn(false)

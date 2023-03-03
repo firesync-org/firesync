@@ -1,3 +1,4 @@
+import { Request } from 'express'
 import { db } from '../../db/db'
 import crypto from 'node:crypto'
 import { UnauthorizedError } from '../http/helpers/errors'
@@ -62,5 +63,36 @@ export const tokens = {
     })
 
     return { accessToken, expiresInSeconds }
+  },
+
+  async getUserIdFromAccessToken(accessToken: string) {
+    const now = new Date()
+
+    const accessTokenRow = await db
+      .knex('access_tokens')
+      .select('project_user_id')
+      .where('token', accessToken)
+      .where('revoked', false)
+      .where('expires_at', '>', now.toISOString())
+      .first()
+
+    if (accessTokenRow === undefined) {
+      throw new UnauthorizedError(
+        'Access token does not exist, has expired or been revoked'
+      )
+    }
+
+    return accessTokenRow.project_user_id
+  },
+
+  async getUserIdFromRequest(req: Request) {
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.match(/^Bearer /)) {
+      throw new UnauthorizedError(
+        `No access token provided. Please set an 'Authorization: Bearer <access_token>' header`
+      )
+    }
+    const accessToken = authHeader.replace(/^Bearer\s+/, '')
+    return await this.getUserIdFromAccessToken(accessToken)
   }
 }
