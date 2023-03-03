@@ -7,33 +7,19 @@ import {
 } from 'passport-google-oauth20'
 import querystring from 'node:querystring'
 
-import { RequestWithProject, requestHandler } from '../helpers/requestHandler'
+import {
+  RequestWithProject,
+  requestHandler
+} from '../../helpers/requestHandler'
 import {
   AuthProviderGoogle,
   ProjectUser,
   ProjectUserAuthProvider,
   db
-} from '../../../db/db'
-import { config } from '../../../config'
-import { UnexpectedInternalStateError } from '../../../shared/errors'
-import { tokens } from '../../models/tokens'
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface User {
-      userId: string
-    }
-  }
-}
-
-passport.serializeUser(function (user, done) {
-  done(null, user)
-})
-
-passport.deserializeUser(function (user: any, done) {
-  done(null, user)
-})
+} from '../../../../db/db'
+import { config } from '../../../../config'
+import { UnexpectedInternalStateError } from '../../../../shared/errors'
+import { tokens } from '../../../models/tokens'
 
 type RequestWithAuthCredentials = RequestWithProject & {
   authCredentials: Pick<
@@ -144,24 +130,10 @@ const loadGoogleUser =
     }
   }
 
-export const authController = {
-  /**
-   * @openapi
-   * /api/v1/user:
-   *   get:
-   *     description: Welcome to swagger-jsdoc!
-   *     responses:
-   *       200:
-   *         description: Returns a mysterious string.
-   */
-  getUser: requestHandler(async (req, res) => {
-    const userId = await tokens.getUserIdFromRequest(req)
-    res.json({ userId })
-  }),
+export const googleAuthController = {
+  startAuth: loadGoogleStrategyForProject({ scope: ['profile'] }),
 
-  authGoogle: loadGoogleStrategyForProject({ scope: ['profile'] }),
-
-  authGoogleCallback: [
+  callback: [
     loadGoogleStrategyForProject({ failureRedirect: '/login', session: false }),
     requestHandler<RequestWithAuthCredentials>(async (req, res) => {
       const userId = req.user?.userId

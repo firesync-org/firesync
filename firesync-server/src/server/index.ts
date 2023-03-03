@@ -2,7 +2,7 @@ import express from 'express'
 import expressLayouts from 'express-ejs-layouts'
 import path from 'path'
 import { rolesController } from './http/controllers/roles'
-import { authController } from './http/controllers/auth'
+import { googleAuthController } from './http/controllers/auth/google'
 import passport from 'passport'
 import { loadProject } from './http/middleware/loadProject'
 import { setCorsHeadersForProject } from './http/middleware/setCorsHeaders'
@@ -13,12 +13,31 @@ import { debugRouter } from './http/debug/debugRouter'
 import { invitesController } from './http/controllers/invites'
 import { projectsController } from './http/controllers/projects'
 import { config } from '../config'
+import { userController } from './http/controllers/user'
+import { tokenController } from './http/controllers/tokens'
 
 export { logging } from './lib/Logging/Logger'
 
 type FiresyncServerOptions = {
   enableDebugRouter?: boolean
 }
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface User {
+      userId: string
+    }
+  }
+}
+
+passport.serializeUser(function (user, done) {
+  done(null, user)
+})
+
+passport.deserializeUser(function (user: any, done) {
+  done(null, user)
+})
 
 export const FiresyncServer = ({
   enableDebugRouter = false
@@ -47,9 +66,12 @@ export const FiresyncServer = ({
 
   app.get('/', projectsController.status)
 
-  app.get('/user', authController.getUser)
-  app.get('/auth/google', authController.authGoogle)
-  app.get('/auth/google/callback', authController.authGoogleCallback)
+  app.get('/user', userController.getUser)
+
+  app.post('/auth/token', tokenController.refreshAccessToken)
+
+  app.get('/auth/google', googleAuthController.startAuth)
+  app.get('/auth/google/callback', googleAuthController.callback)
 
   const apiRouter = express.Router()
   app.use('/api', apiRouter)

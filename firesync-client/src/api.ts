@@ -1,5 +1,8 @@
+import logging from './logging'
 import { Session } from './session'
 import { ApiRequestError, AuthError, FiresyncError } from './shared/errors'
+
+const logger = logging('api')
 
 export class Api {
   baseUrl: string
@@ -8,21 +11,49 @@ export class Api {
     this.baseUrl = baseUrl
   }
 
-  async request<ReturnType = any>(
+  async requestWithAccessToken<ReturnType = any>(
     path: string,
     session: Session,
     options: RequestInit = {}
   ) {
-    const accessToken = session.accessToken
-    if (!accessToken) {
-      throw new AuthError('No access token')
+    const doRequest = async () => {
+      const accessToken = session.accessToken
+      if (!accessToken) {
+        throw new AuthError('No access token')
+      }
+
+      return await this.request<ReturnType>(path, {
+        headers: {
+          ...options.headers,
+          Authorization: `Bearer ${accessToken}`
+        },
+        ...options
+      })
     }
+
+    try {
+      return await doRequest()
+    } catch (error) {
+      if (error instanceof AuthError) {
+        logger.debug(
+          'api request failed with AuthError, refreshing access token'
+        )
+        await session.refreshAccessToken()
+        return await doRequest()
+      } else {
+        throw error
+      }
+    }
+  }
+
+  async request<ReturnType = any>(path: string, options: RequestInit = {}) {
+    logger.debug('api request', { path, options })
 
     const res = await fetch(`${this.baseUrl}/${path}`, {
       headers: {
+        ...options.headers,
         Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`
+        'Content-Type': 'application/json'
       },
       ...options
     })

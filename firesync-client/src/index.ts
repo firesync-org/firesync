@@ -29,7 +29,7 @@ export default class Firesync {
     this.baseUrl = baseUrl
     this.api = new Api(baseUrl)
     this.session = new Session(this.api)
-    this.connection = new Connection(this.baseUrl, {})
+    this.connection = new Connection(this.baseUrl, { connect: false })
   }
 
   async isLoggedIn() {
@@ -46,31 +46,38 @@ export default class Firesync {
   }
 
   async getUser() {
-    return await this.api.request<{ userId?: number }>('user', this.session)
+    return await this.api.requestWithAccessToken<{ userId?: number }>(
+      'user',
+      this.session
+    )
   }
 
   async getUserRoles() {
-    return await this.api.request<{
+    return await this.api.requestWithAccessToken<{
       user: { roles: Array<{ docKey: string; userId: number; role: string }> }
     }>('api/user/roles', this.session)
   }
 
   async createDoc(docKey: string) {
-    return await this.api.request('api/docs', this.session, {
+    return await this.api.requestWithAccessToken('api/docs', this.session, {
       method: 'POST',
       body: JSON.stringify({ docKey })
     })
   }
 
   async createInvite(docKey: string, role: string) {
-    return await this.api.request('api/docs/invites', this.session, {
-      method: 'POST',
-      body: JSON.stringify({ docKey, role })
-    })
+    return await this.api.requestWithAccessToken(
+      'api/docs/invites',
+      this.session,
+      {
+        method: 'POST',
+        body: JSON.stringify({ docKey, role })
+      }
+    )
   }
 
   async redeemInvite(docKey: string, token: string) {
-    return await this.api.request(
+    return await this.api.requestWithAccessToken(
       `api/docs/invites/${token}/redeem`,
       this.session,
       {
