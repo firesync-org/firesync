@@ -1,12 +1,12 @@
 import { requestHandler } from '../helpers/requestHandler'
 import { db } from '../../../db/db'
 import { getDocId, getDocKey } from '../helpers/docs'
-import { getUserId } from '../helpers/users'
+import { tokens } from '../../models/tokens'
 
 export const rolesController = {
   listDocRoles: requestHandler(async (req, res) => {
     const docKey = getDocKey(req)
-    const userId = getUserId(req)
+    const userId = await tokens.getUserIdFromRequest(req)
 
     const docId = await getDocId(req.firesync.project, docKey, userId, [
       'admin',
@@ -20,7 +20,7 @@ export const rolesController = {
   }),
 
   listUserRoles: requestHandler(async (req, res) => {
-    const userId = getUserId(req)
+    const userId = await tokens.getUserIdFromRequest(req)
 
     const userRoles = await db
       .knex('doc_roles')

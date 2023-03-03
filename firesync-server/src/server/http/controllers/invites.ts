@@ -1,16 +1,16 @@
 import crypto from 'crypto'
 import { db } from '../../../db/db'
 import { getDocId, getDocIdWithoutAuth, getDocKey } from '../helpers/docs'
-import { getUserId } from '../helpers/users'
 import { requestHandler } from '../helpers/requestHandler'
 import { BadRequestError, NotFoundError } from '../helpers/errors'
 import { isRole, roles } from '../../auth/types'
 import { UnexpectedInternalStateError } from '../../../shared/errors'
 import { template } from '../helpers/template'
+import { tokens } from '../../models/tokens'
 
 export const invitesController = {
   createInvite: requestHandler(async (req, res) => {
-    const userId = getUserId(req)
+    const userId = await tokens.getUserIdFromRequest(req)
     const docKey = getDocKey(req)
 
     const role = req.body.role
@@ -58,7 +58,7 @@ export const invitesController = {
 
   redeemInvite: requestHandler(async (req, res) => {
     const docKey = getDocKey(req)
-    const userId = getUserId(req)
+    const userId = await tokens.getUserIdFromRequest(req)
     const { token } = req.params
     if (typeof token !== 'string') {
       throw new UnexpectedInternalStateError(`Expected token from params`)

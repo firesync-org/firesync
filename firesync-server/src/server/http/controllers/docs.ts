@@ -1,12 +1,12 @@
 import { db } from '../../../db/db'
 import { UnexpectedInternalStateError } from '../../../shared/errors'
 import { getDocKey } from '../helpers/docs'
-import { getUserId } from '../helpers/users'
 import { requestHandler } from '../helpers/requestHandler'
+import { tokens } from '../../models/tokens'
 
 export const docsController = {
   createDoc: requestHandler(async (req, res) => {
-    const userId = getUserId(req)
+    const userId = await tokens.getUserIdFromRequest(req)
     const docKey = getDocKey(req)
     const project = req.firesync.project
 
