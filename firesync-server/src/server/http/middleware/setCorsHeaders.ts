@@ -7,6 +7,6 @@ export const setCorsHeadersForProject = requestHandler((req, res, next) => {
   return cors({
     origin: origins,
     credentials: true,
-    allowedHeaders: ['content-type']
+    allowedHeaders: ['content-type', 'authorization']
   })(req, res, next)
 })

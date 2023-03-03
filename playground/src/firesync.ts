@@ -1,6 +1,5 @@
-import Firesync from 'firesync-client'
+import Firesync from '@firesync/client'
 export const firesync = new Firesync({
-  project: 'foo',
-  host: 'api.localtest.me'
+  baseUrl: 'http://localhost:5000'
 })
 ;(window as any).firesync = firesync

@@ -26,7 +26,7 @@ export default function LoginWrapper({ children }: { children: ReactNode }) {
         <div className="card-body">
           <a
             className="btn btn-primary mt-2"
-            href={`https://${firesync.host}/auth/google`}>
+            href={`${firesync.baseUrl}/auth/google`}>
             Log In
           </a>
         </div>
