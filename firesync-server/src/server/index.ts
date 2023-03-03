@@ -1,7 +1,6 @@
 import express from 'express'
 import expressLayouts from 'express-ejs-layouts'
 import path from 'path'
-import { getSessionParser } from './http/session'
 import { rolesController } from './http/controllers/roles'
 import { authController } from './http/controllers/auth'
 import passport from 'passport'
@@ -35,11 +34,9 @@ export const FiresyncServer = ({
     app.set('trust proxy', 1)
   }
 
-  app.use(getSessionParser())
   app.use(express.json())
 
   app.use(passport.initialize())
-  app.use(passport.session())
 
   app.use(loadProject)
   app.use(setCorsHeadersForProject)

@@ -5,6 +5,8 @@ import {
   Profile,
   VerifyCallback
 } from 'passport-google-oauth20'
+import querystring from 'node:querystring'
+
 import { RequestWithProject, requestHandler } from '../helpers/requestHandler'
 import {
   AuthProviderGoogle,
@@ -13,6 +15,8 @@ import {
   db
 } from '../../../db/db'
 import { config } from '../../../config'
+import { UnexpectedInternalStateError } from '../../../shared/errors'
+import { tokens } from '../../models/tokens'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -121,8 +125,9 @@ const loadGoogleUser =
             ['id']
           )
           if (newProjectUser === undefined) {
-            // TODO: UnexpectedError
-            throw new Error('Expected user to have been created')
+            throw new UnexpectedInternalStateError(
+              'Expected user to have been created'
+            )
           }
           await txn('project_user_auth_providers').insert({
             project_user_id: newProjectUser.id,
@@ -134,7 +139,8 @@ const loadGoogleUser =
         })
       }
     } catch (error) {
-      cb(error instanceof Error ? error : new Error('oops')) // TODO: UnexpectedError
+      // eslint-disable-next-line n/no-callback-literal
+      cb(error as Error)
     }
   }
 
@@ -160,13 +166,29 @@ export const authController = {
   authGoogle: loadGoogleStrategyForProject({ scope: ['profile'] }),
 
   authGoogleCallback: [
-    loadGoogleStrategyForProject({ failureRedirect: '/login' }),
-    requestHandler<RequestWithAuthCredentials>((req, res) => {
+    loadGoogleStrategyForProject({ failureRedirect: '/login', session: false }),
+    requestHandler<RequestWithAuthCredentials>(async (req, res) => {
+      const userId = req.user?.userId
+      if (userId === undefined) {
+        throw new UnexpectedInternalStateError('Expected userId')
+      }
+
+      const { refreshToken } = await tokens.generateRefreshToken(userId)
+      const { accessToken, expiresInSeconds } =
+        await tokens.generateAccessToken(refreshToken)
+
       if (
         req.authCredentials.success_redirect_url &&
         req.authCredentials.success_redirect_url !== ''
       ) {
-        res.redirect(req.authCredentials.success_redirect_url)
+        res.redirect(
+          `${req.authCredentials.success_redirect_url}#${querystring.stringify({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expiresInSeconds,
+            token_type: 'bearer'
+          })}`
+        )
       } else {
         res.render('projects/noGoogleSuccessRedirectUrl', {
           projectName: req.firesync.project.name

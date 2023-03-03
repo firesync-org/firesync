@@ -80,6 +80,26 @@ export type InviteToken = {
   updated_at: string
 }
 
+export type AccessToken = {
+  id: string // bigint is returned as a string
+  project_user_id: string
+  token: string
+  expires_at: string
+  revoked: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type RefreshToken = {
+  id: string // bigint is returned as a string
+  project_user_id: string
+  token: string
+  expires_at: string
+  revoked: boolean
+  created_at: string
+  updated_at: string
+}
+
 declare module 'knex/types/tables' {
   interface Tables {
     docs: Doc
@@ -90,6 +110,8 @@ declare module 'knex/types/tables' {
     project_user_auth_providers: ProjectUserAuthProvider
     doc_updates: DocUpdate
     invite_tokens: InviteToken
+    access_tokens: AccessToken
+    refresh_tokens: RefreshToken
   }
 }
 
@@ -104,29 +126,5 @@ export const db = {
       _knex = knex(getKnexConfig())
     }
     return _knex
-  },
-
-  get pool() {
-    if (_pool === undefined) {
-      const {
-        POSTGRES_DATABASE,
-        POSTGRES_HOST,
-        POSTGRES_USER,
-        POSTGRES_PASSWORD,
-        POSTGRES_PORT,
-        ssl
-      } = getConfig()
-      const conf = {
-        database: POSTGRES_DATABASE,
-        user: POSTGRES_USER,
-        password: POSTGRES_PASSWORD,
-        host: POSTGRES_HOST,
-        port: POSTGRES_PORT,
-        ssl
-      }
-      _pool = new Pool(conf)
-    }
-
-    return _pool
   }
 }

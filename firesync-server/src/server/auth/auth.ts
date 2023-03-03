@@ -1,18 +1,12 @@
 import { AuthInterface, Role, UserId } from './types'
-import { parseExpressSession, getSessionParser } from '../http/session'
-import { SessionData } from 'express-session'
 import { db } from '../../db/db'
 
 const READ_ROLES: Role[] = ['read', 'write', 'admin']
 const WRITE_ROLES: Role[] = ['write', 'admin']
 
 export const auth: AuthInterface = {
-  async getUserIdFromRequest(request) {
-    const session = await parseExpressSession<SessionData>(
-      request,
-      getSessionParser()
-    )
-    return session.passport?.user?.userId || null
+  async getUserIdFromRequest() {
+    return null
   },
 
   async canConnect() {
