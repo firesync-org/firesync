@@ -16,20 +16,18 @@ export const testWrapper = function (
   testMethod: (data: {
     ydoc: Y.Doc
     docKey: string
-    connection: Connection
     serverClient: ServerClient
-    session: Session
     client: Firesync
   }) => Promise<void>
 ) {
   return async function () {
-    const { connection, client } = getClient({
+    const client = getClient({
       connect: false // Wait until we have a user and session
     })
 
-    connection.maxConnectionAttemptDelay = 30
-    connection.minConnectionAttemptDelay = 1
-    connection.soonConnectionAttemptDelayThreshold = 5
+    client.connection.maxConnectionAttemptDelay = 30
+    client.connection.minConnectionAttemptDelay = 1
+    client.connection.soonConnectionAttemptDelayThreshold = 5
 
     const serverClient = new ServerClient(
       `http://localhost:5000`,
@@ -44,23 +42,23 @@ export const testWrapper = function (
     const ydoc = new Y.Doc()
 
     if (connect) {
-      connection.connect()
+      client.connection.connect()
 
       await tryUntil(async () => {
-        expect(connection.connected).to.equal(true)
+        expect(client.connection.connected).to.equal(true)
       })
 
       if (subscribe) {
-        connection.subscribe(docKey, ydoc)
+        client.connection.subscribe(docKey, ydoc)
         await tryUntil(async () => {
-          expect(connection.isSubscribed(docKey)).to.equal(true)
-          expect(connection.hasSentInitialUpdate(docKey)).to.equal(true)
+          expect(client.connection.isSubscribed(docKey)).to.equal(true)
+          expect(client.connection.hasSentInitialUpdate(docKey)).to.equal(true)
         })
       }
     }
 
     const cleanUp = async () => {
-      connection.disconnect()
+      client.connection.disconnect()
       serverClient.acceptConnections()
     }
 
@@ -68,9 +66,7 @@ export const testWrapper = function (
       await testMethod({
         ydoc,
         docKey,
-        connection,
         serverClient,
-        session: client.session,
         client
       })
     } catch (error) {

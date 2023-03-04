@@ -7,7 +7,7 @@ import { tryUntil, testWrapper } from './utils'
 describe('Protocol Errors', () => {
   test(
     'send update with a session doc id that is not subscribed',
-    testWrapper({}, async ({ connection }) => {
+    testWrapper({}, async ({ client: { connection } }) => {
       expect(connection.connectsCount).to.equal(1)
 
       let error: Error | null
@@ -32,7 +32,7 @@ describe('Protocol Errors', () => {
 
   test(
     'send state vector with a session doc id that is not subscribed',
-    testWrapper({}, async ({ connection }) => {
+    testWrapper({}, async ({ client: { connection } }) => {
       expect(connection.connectsCount).to.equal(1)
 
       let error: Error | null
@@ -57,7 +57,7 @@ describe('Protocol Errors', () => {
 
   test(
     'with an unrecognised message type',
-    testWrapper({}, async ({ connection }) => {
+    testWrapper({}, async ({ client: { connection } }) => {
       expect(connection.connectsCount).to.equal(1)
 
       let error: Error | null
@@ -80,7 +80,7 @@ describe('Protocol Errors', () => {
 
   test(
     'with a badly encoded message',
-    testWrapper({}, async ({ connection }) => {
+    testWrapper({}, async ({ client: { connection } }) => {
       expect(connection.connectsCount).to.equal(1)
 
       let error: Error | null

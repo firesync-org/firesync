@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 
-import Firesync, { Connection, Session, Api } from '@firesync/client'
+import Firesync, { Session, Api } from '@firesync/client'
 
 const api = new Api('http://localhost:5000')
 
@@ -14,10 +14,9 @@ export const getClient = ({
   const client = new Firesync({
     baseUrl: 'http://localhost:5000',
     connect,
+    session,
     WebSocket
   })
 
-  const connection = client.connection
-
-  return { client, connection, session }
+  return client
 }
