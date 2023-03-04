@@ -1,11 +1,9 @@
 import { expect } from 'chai'
-import { Y, Connection, Session, Api } from '@firesync/client'
+import Firesync, { Y, Connection, Session } from '@firesync/client'
 import { getClient } from './getClient'
 import { ServerClient } from './serverClient'
 import { tryUntil } from './tryUntil'
 import { v4 as uuidv4 } from 'uuid'
-
-const api = new Api('http://localhost:5000')
 
 export const testWrapper = function (
   {
@@ -21,30 +19,33 @@ export const testWrapper = function (
     connection: Connection
     serverClient: ServerClient
     session: Session
+    client: Firesync
   }) => Promise<void>
 ) {
   return async function () {
-    const url = `http://localhost:5000`
-    const session = new Session(api)
-
-    const serverClient = new ServerClient(url, session)
-
-    await serverClient.createUserAndLogin()
-
-    const docKey = uuidv4()
-    await serverClient.createDoc(docKey)
-    const ydoc = new Y.Doc()
-
-    const { connection } = getClient({
-      connect,
-      session
+    const { connection, client } = getClient({
+      connect: false // Wait until we have a user and session
     })
 
     connection.maxConnectionAttemptDelay = 30
     connection.minConnectionAttemptDelay = 1
     connection.soonConnectionAttemptDelayThreshold = 5
 
+    const serverClient = new ServerClient(
+      `http://localhost:5000`,
+      client.session
+    )
+
+    const { accessToken, refreshToken } = await serverClient.createUser()
+    client.session.setSession({ accessToken, refreshToken })
+
+    const docKey = uuidv4()
+    await serverClient.createDoc(docKey)
+    const ydoc = new Y.Doc()
+
     if (connect) {
+      connection.connect()
+
       await tryUntil(async () => {
         expect(connection.connected).to.equal(true)
       })
@@ -64,7 +65,14 @@ export const testWrapper = function (
     }
 
     try {
-      await testMethod({ ydoc, docKey, connection, serverClient, session })
+      await testMethod({
+        ydoc,
+        docKey,
+        connection,
+        serverClient,
+        session: client.session,
+        client
+      })
     } catch (error) {
       await cleanUp()
       throw error

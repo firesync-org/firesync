@@ -18,6 +18,8 @@ export { Api } from './api'
 type Options = {
   baseUrl: string
   connect?: boolean
+  WebSocket?: any
+  session?: Session
 }
 
 export default class Firesync {
@@ -26,14 +28,19 @@ export default class Firesync {
   session: Session
   api: Api
 
-  constructor({ baseUrl, connect = true }: Options) {
+  constructor({ baseUrl, connect = true, WebSocket, session }: Options) {
     // TODO: Do some sanity checking about the baseUrl
     // includes protocol, matches protocol of client, etc
     this.baseUrl = baseUrl
     this.api = new Api(baseUrl)
-    this.session = new Session(this.api)
+    if (session !== undefined) {
+      this.session = session
+    } else {
+      this.session = new Session(this.api)
+    }
     this.connection = new Connection(this.baseUrl, this.session, {
-      connect
+      connect,
+      CustomWebSocket: WebSocket
     })
   }
 

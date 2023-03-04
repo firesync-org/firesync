@@ -83,7 +83,7 @@ export class Session {
         body: JSON.stringify({ refresh_token: refreshToken })
       })
 
-      this.saveSession({
+      this.setSession({
         accessToken: result.access_token,
         refreshToken: result.refresh_token
       })
@@ -116,13 +116,13 @@ export class Session {
           accessToken,
           refreshToken
         })
-        this.saveSession({ accessToken, refreshToken })
+        this.setSession({ accessToken, refreshToken })
         window.location.hash = ''
       }
     }
   }
 
-  saveSession(session: StoredSession) {
+  setSession(session: StoredSession) {
     this.storage.setItem(SESSION_KEY, JSON.stringify(session))
   }
 

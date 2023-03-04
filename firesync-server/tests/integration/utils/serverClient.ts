@@ -10,7 +10,7 @@ export class ServerClient {
     this.session = session
   }
 
-  async createUserAndLogin() {
+  async createUser() {
     const response = await this.fetch(`/debug/user`, {
       method: 'POST'
     })
@@ -19,7 +19,7 @@ export class ServerClient {
       accessToken: string
       expiresInSeconds: number
     }
-    this.session.saveSession({ refreshToken, accessToken })
+    return { refreshToken, accessToken }
   }
 
   async getUser() {
