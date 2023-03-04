@@ -1,7 +1,7 @@
 import fetch, { RequestInit } from 'node-fetch'
 import { Session } from '@firesync/client'
 
-export class ServerClient {
+export class ServerDebugClient {
   url: string
   session: Session
 

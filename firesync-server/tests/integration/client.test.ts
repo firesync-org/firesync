@@ -7,23 +7,20 @@ describe('Client', () => {
   describe('reconnection logic', () => {
     test(
       'should reconnect if wantToBeConnected',
-      testWrapper(
-        {},
-        async ({ docKey, client: { connection }, serverClient }) => {
-          serverClient.terminateDocConnections(docKey)
+      testWrapper({}, async ({ docKey, client: { connection }, server }) => {
+        server.terminateDocConnections(docKey)
 
-          // Make sure we have disconnected
-          await tryUntil(async () => {
-            expect(connection.disconnectsCount).to.be.greaterThan(0)
-          })
+        // Make sure we have disconnected
+        await tryUntil(async () => {
+          expect(connection.disconnectsCount).to.be.greaterThan(0)
+        })
 
-          // Make sure we reconnect
-          await tryUntil(async () => {
-            expect(connection.connected).to.equal(true)
-            expect(connection.connectsCount).to.be.greaterThan(1)
-          })
-        }
-      )
+        // Make sure we reconnect
+        await tryUntil(async () => {
+          expect(connection.connected).to.equal(true)
+          expect(connection.connectsCount).to.be.greaterThan(1)
+        })
+      })
     )
 
     test(
@@ -48,34 +45,31 @@ describe('Client', () => {
 
     test(
       'should back off on reconnection attempts up to maxConnectionAttemptDelay',
-      testWrapper(
-        {},
-        async ({ docKey, client: { connection }, serverClient }) => {
-          await serverClient.refuseConnections()
-          await serverClient.terminateDocConnections(docKey)
+      testWrapper({}, async ({ docKey, client: { connection }, server }) => {
+        await server.refuseConnections()
+        await server.terminateDocConnections(docKey)
 
-          // Make sure we have disconnected
-          await tryUntil(async () => {
-            expect(connection.disconnectsCount).to.be.greaterThan(0)
-          })
+        // Make sure we have disconnected
+        await tryUntil(async () => {
+          expect(connection.disconnectsCount).to.be.greaterThan(0)
+        })
 
-          // Try to reconnect multiple times up to maxConnectionAttemptDelay
-          await tryUntil(async () => {
-            expect(connection.connectionAttempts).to.be.greaterThan(2)
-            expect(connection.nextConnectionAttemptDelay).to.equal(
-              connection.maxConnectionAttemptDelay
-            )
-          })
-        }
-      )
+        // Try to reconnect multiple times up to maxConnectionAttemptDelay
+        await tryUntil(async () => {
+          expect(connection.connectionAttempts).to.be.greaterThan(2)
+          expect(connection.nextConnectionAttemptDelay).to.equal(
+            connection.maxConnectionAttemptDelay
+          )
+        })
+      })
     )
 
     test(
       'should reconnect if first connection attempt fails',
       testWrapper(
         { connect: false },
-        async ({ client: { connection }, serverClient }) => {
-          await serverClient.refuseConnections()
+        async ({ client: { connection }, server }) => {
+          await server.refuseConnections()
 
           connection.connect()
 
@@ -86,7 +80,7 @@ describe('Client', () => {
 
           expect(connection.connected).to.equal(false)
 
-          await serverClient.acceptConnections()
+          await server.acceptConnections()
 
           // Check connected
           await tryUntil(async () => {
@@ -100,12 +94,12 @@ describe('Client', () => {
       'should stop trying to reconnect after a while',
       testWrapper(
         {},
-        async ({ ydoc, docKey, client: { connection }, serverClient }) => {
+        async ({ ydoc, docKey, client: { connection }, server }) => {
           connection.stopConnectionAttemptsAfter = 100 // ms
 
           // Disconnect
-          serverClient.refuseConnections()
-          serverClient.terminateDocConnections(docKey)
+          server.refuseConnections()
+          server.terminateDocConnections(docKey)
 
           // Make sure we have disconnected
           await tryUntil(async () => {
@@ -121,7 +115,7 @@ describe('Client', () => {
           })
 
           // Should still reconnect after updates
-          serverClient.acceptConnections()
+          server.acceptConnections()
           ydoc.getText('t').insert(0, 'foo')
 
           await tryUntil(async () => {
@@ -135,9 +129,9 @@ describe('Client', () => {
       'should reconnect soon on an update from the doc',
       testWrapper(
         {},
-        async ({ ydoc, docKey, client: { connection }, serverClient }) => {
-          await serverClient.refuseConnections()
-          await serverClient.terminateDocConnections(docKey)
+        async ({ ydoc, docKey, client: { connection }, server }) => {
+          await server.refuseConnections()
+          await server.terminateDocConnections(docKey)
 
           // Make sure we have disconnected
           await tryUntil(async () => {
@@ -320,10 +314,10 @@ describe('Client', () => {
           ydoc: ydoc1a,
           docKey: docKey1,
           client: { connection: connectionA, session },
-          serverClient
+          server
         }) => {
           const docKey2 = uuidv4()
-          await serverClient.createDoc(docKey2)
+          await server.createDoc(docKey2)
           const ydoc2a = connectionA.subscribe(docKey2)
 
           // Wait till subscribed
@@ -364,11 +358,11 @@ describe('Client', () => {
           ydoc: ydoc1a,
           docKey: docKey1,
           client: { connection: connectionA, session },
-          serverClient
+          server
         }) => {
           const docKey2 = uuidv4()
           const ydoc2a = new Y.Doc()
-          await serverClient.createDoc(docKey2)
+          await server.createDoc(docKey2)
 
           connectionA.subscribe(docKey1, ydoc1a)
           connectionA.subscribe(docKey2, ydoc2a)

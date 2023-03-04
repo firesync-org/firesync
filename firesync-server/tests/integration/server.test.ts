@@ -12,7 +12,7 @@ describe('Server Syncing', () => {
       async ({
         docKey,
         client: { connection: connection1, session },
-        serverClient,
+        server,
         ydoc: ydoc1
       }) => {
         // Set up 2 docs with content in sync
@@ -21,7 +21,7 @@ describe('Server Syncing', () => {
         yText1.insert(3, 'bar')
 
         await tryUntil(async () => {
-          const sv = await serverClient.getDocStateVector(docKey)
+          const sv = await server.getDocStateVector(docKey)
           expect(sv[ydoc1.clientID]).to.equal(9)
         })
 
@@ -49,7 +49,7 @@ describe('Server Syncing', () => {
       async ({
         docKey,
         client: { connection: connection1, session },
-        serverClient,
+        server,
         ydoc: ydoc1
       }) => {
         // Set up 2 docs with content in sync
@@ -62,7 +62,7 @@ describe('Server Syncing', () => {
         yText1.insert(3, 'bar')
 
         await tryUntil(async () => {
-          const sv = await serverClient.getDocStateVector(docKey)
+          const sv = await server.getDocStateVector(docKey)
           expect(sv[ydoc1.clientID]).to.equal(6)
         })
 
@@ -90,12 +90,12 @@ describe('Server Syncing', () => {
     'should handle the client already being up to date',
     testWrapper(
       {},
-      async ({ docKey, client: { connection }, serverClient, ydoc }) => {
+      async ({ docKey, client: { connection }, server, ydoc }) => {
         const yText = ydoc.getText('t')
         yText.insert(0, 'foo')
 
         await tryUntil(async () => {
-          const sv = await serverClient.getDocStateVector(docKey)
+          const sv = await server.getDocStateVector(docKey)
           expect(sv[ydoc.clientID]).to.equal(3)
         })
 
@@ -122,7 +122,7 @@ describe('Server Syncing', () => {
     'should handle updates from the client it already has',
     testWrapper(
       { connect: false },
-      async ({ docKey, client: { connection }, serverClient, ydoc }) => {
+      async ({ docKey, client: { connection }, server, ydoc }) => {
         // Set up some content
         const yText = ydoc.getText('t')
         yText.insert(0, 'foo')
@@ -132,7 +132,7 @@ describe('Server Syncing', () => {
         connection.subscribe(docKey, ydoc)
 
         await tryUntil(async () => {
-          const sv = await serverClient.getDocStateVector(docKey)
+          const sv = await server.getDocStateVector(docKey)
           expect(sv[ydoc.clientID]).to.equal(6)
         })
 
@@ -144,11 +144,11 @@ describe('Server Syncing', () => {
         connection.sendUpdate(docKey, Y.encodeStateAsUpdate(ydoc))
 
         await tryUntil(async () => {
-          const sv = await serverClient.getDocStateVector(docKey)
+          const sv = await server.getDocStateVector(docKey)
           expect(sv[ydoc.clientID]).to.equal(9)
         })
 
-        const rawUpdates = await serverClient.getDocUpdates(docKey)
+        const rawUpdates = await server.getDocUpdates(docKey)
         const updates = rawUpdates.map(Y.decodeUpdate)
 
         // First update should be 'foo' and 'bar'
@@ -175,7 +175,7 @@ describe('Server Syncing', () => {
     'should error if the client sends updates that do not match the current state vector',
     testWrapper(
       { connect: false },
-      async ({ docKey, client: { connection }, serverClient, ydoc }) => {
+      async ({ docKey, client: { connection }, server, ydoc }) => {
         // Set up some content
         const yText = ydoc.getText('t')
         yText.insert(0, 'foo')
@@ -184,7 +184,7 @@ describe('Server Syncing', () => {
         connection.subscribe(docKey, ydoc)
 
         await tryUntil(async () => {
-          const sv = await serverClient.getDocStateVector(docKey)
+          const sv = await server.getDocStateVector(docKey)
           expect(sv[ydoc.clientID]).to.equal(3)
         })
 
@@ -217,11 +217,11 @@ describe('Server Syncing', () => {
 
         // Should reject update
         await tryUntil(async () => {
-          const sv = await serverClient.getDocStateVector(docKey)
+          const sv = await server.getDocStateVector(docKey)
           expect(sv[ydoc.clientID]).to.equal(3)
         })
 
-        const rawUpdates = await serverClient.getDocUpdates(docKey)
+        const rawUpdates = await server.getDocUpdates(docKey)
         // rawUpdates.forEach((update) => logger.debug({ update }))
         const updates = rawUpdates.map(Y.decodeUpdate)
 

@@ -1,7 +1,7 @@
 import { expect } from 'chai'
-import Firesync, { Y, Connection, Session } from '@firesync/client'
+import Firesync, { Y } from '@firesync/client'
 import { getClient } from './getClient'
-import { ServerClient } from './serverClient'
+import { ServerDebugClient } from './serverClient'
 import { tryUntil } from './tryUntil'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -16,7 +16,7 @@ export const testWrapper = function (
   testMethod: (data: {
     ydoc: Y.Doc
     docKey: string
-    serverClient: ServerClient
+    server: ServerDebugClient
     client: Firesync
   }) => Promise<void>
 ) {
@@ -29,16 +29,16 @@ export const testWrapper = function (
     client.connection.minConnectionAttemptDelay = 1
     client.connection.soonConnectionAttemptDelayThreshold = 5
 
-    const serverClient = new ServerClient(
+    const server = new ServerDebugClient(
       `http://localhost:5000`,
       client.session
     )
 
-    const { accessToken, refreshToken } = await serverClient.createUser()
+    const { accessToken, refreshToken } = await server.createUser()
     client.session.setSession({ accessToken, refreshToken })
 
     const docKey = uuidv4()
-    await serverClient.createDoc(docKey)
+    await server.createDoc(docKey)
     const ydoc = new Y.Doc()
 
     if (connect) {
@@ -59,14 +59,14 @@ export const testWrapper = function (
 
     const cleanUp = async () => {
       client.connection.disconnect()
-      serverClient.acceptConnections()
+      server.acceptConnections()
     }
 
     try {
       await testMethod({
         ydoc,
         docKey,
-        serverClient,
+        server,
         client
       })
     } catch (error) {
