@@ -1,4 +1,4 @@
-import { Role } from '../server/auth/types'
+import { Role } from '../server/ws/auth'
 import knex, { Knex } from 'knex'
 import { getConfig, getKnexConfig } from './config'
 import Pool from 'pg-pool'

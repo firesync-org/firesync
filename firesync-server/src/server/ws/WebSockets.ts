@@ -1,12 +1,13 @@
 import { IncomingMessage } from 'http'
 import { WebSocketServer, WebSocket, RawData } from 'ws'
 import { Connection } from './Connection'
-import { auth } from '../auth/auth'
+import { auth } from './auth'
 import { logging } from '../lib/Logging/Logger'
 import EventEmitter from 'events'
-import { UserId } from '../auth/types'
 import { db } from '../../db/db'
 import internal from 'stream'
+import { projects } from '../models/projects'
+import { HttpError } from '../http/helpers/errors'
 const logger = logging.child('websockets')
 
 type ChaosMonkey = {
@@ -24,7 +25,7 @@ export class WebSocketTransport extends EventEmitter {
   constructor(options: {
     ws: WebSocket
     chaosMonkey?: ChaosMonkey
-    userId: UserId
+    userId: string
     projectId: string
   }) {
     super()
@@ -101,47 +102,40 @@ export class WebSocketTransports {
     socket: internal.Duplex,
     head: Buffer
   ) {
-    const projectName = request.headers.host?.split('.')[0]
-    if (projectName === undefined) {
-      socket.write('HTTP/1.1 400 Bad Request\r\n\r\n')
-      socket.destroy()
-      return
-    }
-
     if (this.chaosMonkey.refuseConnections) {
-      logger.debug({ projectName }, 'chaosMonkey is refusing connection')
+      logger.debug({}, 'chaosMonkey is refusing connection')
       socket.destroy()
       return
     }
 
-    const project = await db
-      .knex('projects')
-      .select('id', 'name', 'cors_allowed_origins')
-      .where('name', projectName)
-      .first()
-    if (project === undefined) {
-      socket.write('HTTP/1.1 404 Not Found\r\n\r\n')
-      socket.destroy()
-      return
+    let userId: string
+    let project: Awaited<ReturnType<typeof projects.getProjectFromRequest>>
+    try {
+      project = await projects.getProjectFromRequest(request)
+      userId = await auth.getUserIdFromRequest(request)
+    } catch (error) {
+      console.log('error', error)
+      if (error instanceof HttpError) {
+        socket.write(`HTTP/1.1 ${error.statusCode} ${error.meaning}\r\n\r\n`)
+        socket.destroy()
+        return
+      } else {
+        throw error
+      }
     }
     const projectId = project.id
 
-    const userId = await auth.getUserIdFromRequest(request)
-    const canConnect = await auth.canConnect(request, userId)
-    logger.debug({ canConnect, url: request.url }, 'onUpgrade')
-
-    if (!canConnect) {
-      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
-      socket.destroy()
-      return
-    }
+    logger.debug(
+      { url: request.url, projectId, projectName: project.name },
+      'onUpgrade'
+    )
 
     this.wss.handleUpgrade(request, socket, head, (ws) => {
       this.initializeConnection(ws, userId, projectId)
     })
   }
 
-  initializeConnection(ws: WebSocket, userId: UserId, projectId: string) {
+  initializeConnection(ws: WebSocket, userId: string, projectId: string) {
     const connection = new WebSocketTransport({
       ws,
       chaosMonkey: this.chaosMonkey,

@@ -12,9 +12,11 @@ export { Connection } from './connection'
 export { LogLevel, setLogLevel } from './logging'
 export { MessageType } from './shared/protocol'
 export { AuthError } from './shared/errors'
+export { Session } from './session'
 
 type Options = {
   baseUrl: string
+  connect?: boolean
 }
 
 export default class Firesync {
@@ -23,13 +25,15 @@ export default class Firesync {
   session: Session
   api: Api
 
-  constructor({ baseUrl }: Options) {
+  constructor({ baseUrl, connect = true }: Options) {
     // TODO: Do some sanity checking about the baseUrl
     // includes protocol, matches protocol of client, etc
     this.baseUrl = baseUrl
     this.api = new Api(baseUrl)
     this.session = new Session(this.api)
-    this.connection = new Connection(this.baseUrl, { connect: false })
+    this.connection = new Connection(this.baseUrl, this.session, {
+      connect
+    })
   }
 
   async isLoggedIn() {

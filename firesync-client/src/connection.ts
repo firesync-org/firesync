@@ -16,15 +16,16 @@ import {
   ErrorFatalMessage,
   UnsubscribeResponseMessage,
   UnsubscribeErrorMessage
-} from './shared/protocol.js'
-import logging from './logging.js'
+} from './shared/protocol'
+import logging from './logging'
 import {
   AuthError,
   BadParameterError,
   BadRequestError,
   ErrorsByName,
   UnexpectedInternalStateError
-} from './shared/errors.js'
+} from './shared/errors'
+import { Session } from './session'
 
 const logger = logging('connection')
 
@@ -56,10 +57,10 @@ type DocState = {
 }
 
 export class Connection extends EventEmitter {
+  session: Session
   private ws?: WebSocket | null
   private baseUrl: string
   private WebSocket: typeof WebSocket
-  private websocketOptions: any
   private docs = new Map<string, DocState>()
 
   // Used for configuring options that are generally only useful for testing
@@ -71,26 +72,26 @@ export class Connection extends EventEmitter {
 
   constructor(
     baseUrl: string,
+    session: Session,
     {
       connect = true,
-      CustomWebSocket = WebSocket,
-      websocketOptions = undefined
+      CustomWebSocket = WebSocket
     }: {
       connect?: boolean
       CustomWebSocket?: any
-      websocketOptions?: any
     } = {}
   ) {
     super()
 
     this.baseUrl = baseUrl
+    this.session = session
+
     this.WebSocket = CustomWebSocket
     if (!this.WebSocket) {
       throw new BadParameterError(
         'No global WebSocket found, please pass WebSocket constructor as option'
       )
     }
-    this.websocketOptions = websocketOptions
 
     if (connect) {
       this.connect()
@@ -767,6 +768,13 @@ export class Connection extends EventEmitter {
     this._connectionAttempts++
     this._wantToBeConnected = true
 
+    const accessToken = this.session.accessToken
+    if (!accessToken) {
+      return this.handleError(
+        new AuthError('Cannot connect with no access token')
+      )
+    }
+
     logger.debug(
       {
         connected: this.connected,
@@ -786,14 +794,17 @@ export class Connection extends EventEmitter {
 
     // http:// -> ws://, https:// -> wss://
     // TODO: What about // as a protocol?
-    const url = this.baseUrl.replace(/^http/, 'ws')
+    const url = `${this.baseUrl.replace(
+      /^http/,
+      'ws'
+    )}?access_token=${encodeURIComponent(accessToken)}`
 
     if (this.ws) {
       throw new UnexpectedInternalStateError(
         'Unexpectedly trying to create new WebSocket while existing socket is live'
       )
     }
-    this.ws = new this.WebSocket(url, this.websocketOptions)
+    this.ws = new this.WebSocket(url)
     this.ws.binaryType = 'arraybuffer'
 
     this.resetSubscribedDocs()

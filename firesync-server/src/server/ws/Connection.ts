@@ -19,8 +19,7 @@ import {
   UnsubscribeRequestMessage
 } from '../../shared/protocol'
 
-import { UserId } from '../auth/types'
-import { auth } from '../auth/auth'
+import { auth } from './auth'
 import { logging } from '../lib/Logging/Logger'
 import EventEmitter from 'events'
 import { WebSocketTransport } from './WebSockets'
@@ -41,12 +40,12 @@ export class Connection extends EventEmitter {
   ws: WebSocketTransport
   docKeysByDocIds = new Map<number, string>()
   docIdsByDocKeys = new Map<string, number>()
-  userId: UserId
+  userId: string
   projectId: string
 
   constructor(options: {
     ws: WebSocketTransport
-    userId: UserId
+    userId: string
     projectId: string
   }) {
     super()

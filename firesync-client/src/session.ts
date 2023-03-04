@@ -19,7 +19,7 @@ export class Session {
   async refreshAccessToken() {
     const refreshToken = this.refreshToken
     if (!refreshToken) {
-      throw new AuthError('Cannot refresh access toke0n without refresh token')
+      throw new AuthError('Cannot refresh access token without refresh token')
     }
 
     logger.debug('refreshing access token')

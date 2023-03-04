@@ -17,7 +17,7 @@
     "strict": true,
     "strictNullChecks": true,
     "paths": {
-      "firesync-client": ["../../firesync/firesync-client/"]
+      "@firesync/client": ["../../firesync/firesync-client/"]
     },
   },
   "include": ["src", "tests"],
