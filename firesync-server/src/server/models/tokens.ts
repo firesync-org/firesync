@@ -15,6 +15,18 @@ const ACCESS_TOKEN_BYTES = 128
 const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 60 * MINUTES
 
 export const tokens = {
+  async generateTokens(userId: string) {
+    const { refreshToken } = await this.generateRefreshToken(userId)
+    const { accessToken, expiresInSeconds } = await this.generateAccessToken(
+      refreshToken
+    )
+    return {
+      refreshToken,
+      accessToken,
+      expiresInSeconds
+    }
+  },
+
   async generateRefreshToken(userId: string) {
     const expiresInSeconds = REFRESH_TOKEN_EXPIRES_IN_SECONDS
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000)

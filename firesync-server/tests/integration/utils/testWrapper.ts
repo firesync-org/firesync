@@ -1,11 +1,11 @@
 import { expect } from 'chai'
-import { Y, Connection } from '@firesync/client'
+import { Y, Connection, Session, Api } from '@firesync/client'
 import { getClient } from './getClient'
 import { ServerClient } from './serverClient'
 import { tryUntil } from './tryUntil'
 import { v4 as uuidv4 } from 'uuid'
 
-const port = 5000
+const api = new Api('http://localhost:5000')
 
 export const testWrapper = function (
   {
@@ -20,23 +20,24 @@ export const testWrapper = function (
     docKey: string
     connection: Connection
     serverClient: ServerClient
-    port: number
+    session: Session
   }) => Promise<void>
 ) {
   return async function () {
-    const host = `${process.env.PROJECT_NAME}.api.localtest.me`
-    const serverClient = new ServerClient(`https://${host}`)
+    const url = `http://localhost:5000`
+    const session = new Session(api)
 
-    await serverClient.createUser()
+    const serverClient = new ServerClient(url, session)
+
+    await serverClient.createUserAndLogin()
 
     const docKey = uuidv4()
     await serverClient.createDoc(docKey)
     const ydoc = new Y.Doc()
 
     const { connection } = getClient({
-      host,
       connect,
-      cookie: serverClient.cookie
+      session
     })
 
     connection.maxConnectionAttemptDelay = 30
@@ -63,7 +64,7 @@ export const testWrapper = function (
     }
 
     try {
-      await testMethod({ ydoc, docKey, connection, serverClient, port })
+      await testMethod({ ydoc, docKey, connection, serverClient, session })
     } catch (error) {
       await cleanUp()
       throw error

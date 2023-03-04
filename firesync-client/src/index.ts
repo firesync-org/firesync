@@ -13,6 +13,7 @@ export { LogLevel, setLogLevel } from './logging'
 export { MessageType } from './shared/protocol'
 export { AuthError } from './shared/errors'
 export { Session } from './session'
+export { Api } from './api'
 
 type Options = {
   baseUrl: string

@@ -1,27 +1,20 @@
 import WebSocket from 'ws'
 
-import { Connection } from '@firesync/client'
+import { Connection, Session, Api } from '@firesync/client'
 
-const defaultHost = `${process.env.PROJECT_NAME}.api.localtest.me`
+const api = new Api('http://localhost:5000')
 
 export const getClient = ({
-  host = defaultHost,
   connect = true,
-  cookie = ''
+  session = new Session(api)
 }: {
-  host?: string
   connect?: boolean
-  cookie?: string
+  session?: Session
 } = {}) => {
-  const connection = new Connection(host, {
+  const connection = new Connection('http://localhost:5000', session, {
     CustomWebSocket: WebSocket,
-    websocketOptions: {
-      headers: {
-        cookie
-      }
-    },
     connect
   })
 
-  return { connection }
+  return { connection, session }
 }

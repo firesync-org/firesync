@@ -141,9 +141,8 @@ export const googleAuthController = {
         throw new UnexpectedInternalStateError('Expected userId')
       }
 
-      const { refreshToken } = await tokens.generateRefreshToken(userId)
-      const { accessToken, expiresInSeconds } =
-        await tokens.generateAccessToken(refreshToken)
+      const { refreshToken, accessToken, expiresInSeconds } =
+        await tokens.generateTokens(userId)
 
       if (
         req.authCredentials.success_redirect_url &&

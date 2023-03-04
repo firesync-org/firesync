@@ -305,7 +305,8 @@ describe('Client', () => {
           ydoc: ydoc1a,
           docKey: docKey1,
           connection: connectionA,
-          serverClient
+          serverClient,
+          session
         }) => {
           const docKey2 = uuidv4()
           await serverClient.createDoc(docKey2)
@@ -324,7 +325,7 @@ describe('Client', () => {
           const ydoc1b = new Y.Doc()
           const ydoc2b = new Y.Doc()
           const { connection: connectionB } = getClient({
-            cookie: serverClient.cookie
+            session
           })
           connectionB.subscribe(docKey1, ydoc1b)
           connectionB.subscribe(docKey2, ydoc2b)
@@ -349,7 +350,8 @@ describe('Client', () => {
           ydoc: ydoc1a,
           docKey: docKey1,
           connection: connectionA,
-          serverClient
+          serverClient,
+          session
         }) => {
           const docKey2 = uuidv4()
           const ydoc2a = new Y.Doc()
@@ -374,7 +376,7 @@ describe('Client', () => {
           const ydoc1b = new Y.Doc()
           const ydoc2b = new Y.Doc()
           const { connection: connectionB } = getClient({
-            cookie: serverClient.cookie
+            session
           })
           connectionB.subscribe(docKey1, ydoc1b)
           connectionB.subscribe(docKey2, ydoc2b)
@@ -393,12 +395,7 @@ describe('Client', () => {
       'updates to doc before finished subscribing',
       testWrapper(
         { subscribe: false },
-        async ({
-          connection: connectionA,
-          serverClient,
-          docKey,
-          ydoc: ydocA
-        }) => {
+        async ({ connection: connectionA, docKey, ydoc: ydocA, session }) => {
           // Subscribe and send updates before server has acknowledged
           connectionA.subscribe(docKey, ydocA)
           expect(connectionA.isSubscribed(docKey)).to.equal(false)
@@ -412,7 +409,7 @@ describe('Client', () => {
           // Should synced to other connection
           const ydocB = new Y.Doc()
           const { connection: connectionB } = getClient({
-            cookie: serverClient.cookie
+            session
           })
           connectionB.subscribe(docKey, ydocB)
 

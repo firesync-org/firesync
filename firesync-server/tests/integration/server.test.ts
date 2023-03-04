@@ -13,7 +13,8 @@ describe('Server Syncing', () => {
         docKey,
         connection: connection1,
         serverClient,
-        ydoc: ydoc1
+        ydoc: ydoc1,
+        session
       }) => {
         // Set up 2 docs with content in sync
         const yText1 = ydoc1.getText('t')
@@ -27,7 +28,7 @@ describe('Server Syncing', () => {
 
         const ydoc2 = new Y.Doc()
         const { connection: connection2 } = getClient({
-          cookie: serverClient.cookie
+          session
         })
         connection2.subscribe(docKey, ydoc2)
 
@@ -50,7 +51,8 @@ describe('Server Syncing', () => {
         docKey,
         connection: connection1,
         serverClient,
-        ydoc: ydoc1
+        ydoc: ydoc1,
+        session
       }) => {
         // Set up 2 docs with content in sync
         const ydoc2 = new Y.Doc()
@@ -72,7 +74,7 @@ describe('Server Syncing', () => {
 
         // subscribe to doc 2
         const { connection: connection2 } = getClient({
-          cookie: serverClient.cookie
+          session
         })
         connection2.subscribe(docKey, ydoc2)
 

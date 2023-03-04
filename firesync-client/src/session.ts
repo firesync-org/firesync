@@ -1,3 +1,4 @@
+import { string } from 'lib0'
 import { Api } from './api'
 import logging from './logging'
 import { AuthError } from './shared/errors'
@@ -17,13 +18,35 @@ type StorageInterface = {
 
 const SESSION_KEY = 'firesync-session'
 
+// For testing, or where localStorage isn't available
+export class SessionMemoryStorage implements StorageInterface {
+  data = new Map<string, string>()
+
+  getItem(key: string) {
+    return this.data.get(key) || null
+  }
+
+  setItem(key: string, value: string) {
+    this.data.set(key, value)
+  }
+
+  removeItem(key: string) {
+    this.data.delete(key)
+  }
+}
+
+const defaultStorage =
+  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+    ? window.localStorage
+    : new SessionMemoryStorage()
+
 export class Session {
   api: Api
   storage: StorageInterface
 
-  constructor(api: Api) {
+  constructor(api: Api, storage = defaultStorage) {
     this.api = api
-    this.storage = localStorage
+    this.storage = storage
     this.loadSessionFromUrl()
   }
 
@@ -76,6 +99,10 @@ export class Session {
   }
 
   private loadSessionFromUrl() {
+    if (typeof window === 'undefined') {
+      return
+    }
+
     const params = new URLSearchParams(
       window.location.hash.substring(1) // skip the first char (#)
     )
@@ -95,11 +122,11 @@ export class Session {
     }
   }
 
-  private saveSession(session: StoredSession) {
+  saveSession(session: StoredSession) {
     this.storage.setItem(SESSION_KEY, JSON.stringify(session))
   }
 
-  private clearSession() {
+  clearSession() {
     this.storage.removeItem(SESSION_KEY)
   }
 }

@@ -5,6 +5,7 @@ import { UnexpectedInternalStateError } from '../../../shared/errors'
 import { docStore } from '../../lib/Docs/DocStore'
 import { storage } from '../../lib/Storage'
 import { webSockets } from '../../ws/WebSockets'
+import { tokens } from '../../models/tokens'
 
 export const debugRouter = () => {
   const debugRouter = express.Router()
@@ -24,9 +25,11 @@ export const debugRouter = () => {
       }
 
       const userId = newProjectUser.id
-      req.login({ userId }, () => {
-        res.json({ userId })
-      })
+
+      const { refreshToken, accessToken, expiresInSeconds } =
+        await tokens.generateTokens(userId)
+
+      res.json({ refreshToken, accessToken, expiresInSeconds })
     })
   )
 

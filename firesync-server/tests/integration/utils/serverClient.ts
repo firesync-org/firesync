@@ -1,18 +1,25 @@
 import fetch, { RequestInit } from 'node-fetch'
+import { Session } from '@firesync/client'
 
 export class ServerClient {
   url: string
-  cookie?: string
+  session: Session
 
-  constructor(url: string) {
+  constructor(url: string, session: Session) {
     this.url = url
+    this.session = session
   }
 
-  async createUser() {
+  async createUserAndLogin() {
     const response = await this.fetch(`/debug/user`, {
       method: 'POST'
     })
-    this.cookie = response.headers.raw()['set-cookie']![0]
+    const { refreshToken, accessToken } = (await response.json()) as {
+      refreshToken: string
+      accessToken: string
+      expiresInSeconds: number
+    }
+    this.session.saveSession({ refreshToken, accessToken })
   }
 
   async getUser() {
@@ -75,11 +82,7 @@ export class ServerClient {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        ...(this.cookie
-          ? {
-              cookie: this.cookie
-            }
-          : {})
+        Authorization: `Bearer ${this.session.accessToken}`
       },
       ...options
     })
