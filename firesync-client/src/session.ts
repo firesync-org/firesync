@@ -4,16 +4,43 @@ import { AuthError } from './shared/errors'
 
 const logger = logging('session')
 
-const LOCAL_STORAGE_KEY = 'firesync-session'
+type StoredSession = {
+  accessToken: string
+  refreshToken: string
+}
+
+type StorageInterface = {
+  getItem: (key: string) => string | null
+  setItem: (key: string, value: string) => void
+  removeItem: (key: string) => void
+}
+
+const SESSION_KEY = 'firesync-session'
 
 export class Session {
-  accessToken?: string
-  refreshToken?: string
   api: Api
+  storage: StorageInterface
 
   constructor(api: Api) {
     this.api = api
-    this.loadSession()
+    this.storage = localStorage
+    this.loadSessionFromUrl()
+  }
+
+  get accessToken() {
+    const session = this.storage.getItem(SESSION_KEY)
+    if (session) {
+      const { accessToken } = JSON.parse(session) as Partial<StoredSession>
+      return accessToken
+    }
+  }
+
+  get refreshToken() {
+    const session = this.storage.getItem(SESSION_KEY)
+    if (session) {
+      const { refreshToken } = JSON.parse(session) as Partial<StoredSession>
+      return refreshToken
+    }
   }
 
   async refreshAccessToken() {
@@ -33,7 +60,10 @@ export class Session {
         body: JSON.stringify({ refresh_token: refreshToken })
       })
 
-      this.saveSession(result.access_token, result.refresh_token)
+      this.saveSession({
+        accessToken: result.access_token,
+        refreshToken: result.refresh_token
+      })
     } catch (error) {
       // If we failed to refresh, then our tokens have expired
       if (error instanceof AuthError) {
@@ -45,7 +75,7 @@ export class Session {
     logger.debug('refreshed access token')
   }
 
-  private loadSession() {
+  private loadSessionFromUrl() {
     const params = new URLSearchParams(
       window.location.hash.substring(1) // skip the first char (#)
     )
@@ -59,46 +89,17 @@ export class Session {
           accessToken,
           refreshToken
         })
-        this.saveSession(accessToken, refreshToken)
+        this.saveSession({ accessToken, refreshToken })
         window.location.hash = ''
-        return
       }
     }
-
-    // Load session from local storage if present
-    const session = localStorage.getItem(LOCAL_STORAGE_KEY)
-    if (session) {
-      const { accessToken, refreshToken } = JSON.parse(
-        session
-      ) as Partial<Session>
-      if (accessToken && refreshToken) {
-        logger.debug('loading session from local storage', {
-          accessToken,
-          refreshToken
-        })
-        this.saveSession(accessToken, refreshToken)
-        return
-      }
-    }
-
-    logger.debug('no valid session found')
   }
 
-  private saveSession(accessToken: string, refreshToken: string) {
-    this.accessToken = accessToken
-    this.refreshToken = refreshToken
-    localStorage.setItem(
-      LOCAL_STORAGE_KEY,
-      JSON.stringify({
-        accessToken: this.accessToken,
-        refreshToken: this.refreshToken
-      })
-    )
+  private saveSession(session: StoredSession) {
+    this.storage.setItem(SESSION_KEY, JSON.stringify(session))
   }
 
   private clearSession() {
-    this.refreshToken = undefined
-    this.accessToken = undefined
-    localStorage.removeItem(LOCAL_STORAGE_KEY)
+    this.storage.removeItem(SESSION_KEY)
   }
 }

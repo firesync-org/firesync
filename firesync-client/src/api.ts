@@ -23,11 +23,11 @@ export class Api {
       }
 
       return await this.request<ReturnType>(path, {
+        ...options,
         headers: {
           ...options.headers,
           Authorization: `Bearer ${accessToken}`
-        },
-        ...options
+        }
       })
     }
 
@@ -50,12 +50,12 @@ export class Api {
     logger.debug('api request', { path, options })
 
     const res = await fetch(`${this.baseUrl}/${path}`, {
+      ...options,
       headers: {
         ...options.headers,
         Accept: 'application/json',
         'Content-Type': 'application/json'
-      },
-      ...options
+      }
     })
 
     if (res.status >= 200 && res.status < 300) {
