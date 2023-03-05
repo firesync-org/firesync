@@ -1,7 +1,8 @@
 import fetch, { RequestInit } from 'node-fetch'
 import { Session } from '@firesync/client'
+import { string } from 'lib0'
 
-export class ServerDebugClient {
+export class DebugClient {
   url: string
   session: Session
 
@@ -25,6 +26,22 @@ export class ServerDebugClient {
   async getUser() {
     const response = await this.fetch(`/user`)
     return await response.json()
+  }
+
+  async expireTokens({
+    refreshToken,
+    accessToken
+  }: {
+    refreshToken?: string
+    accessToken?: string
+  }) {
+    await this.fetch('/debug/tokens/expire', {
+      method: 'POST',
+      body: JSON.stringify({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      })
+    })
   }
 
   async createDoc(docKey: string) {

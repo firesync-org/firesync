@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import Firesync, { Y } from '@firesync/client'
 import { getClient } from './getClient'
-import { ServerDebugClient } from './serverClient'
+import { DebugClient } from './debugClient'
 import { tryUntil } from './tryUntil'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -16,7 +16,7 @@ export const testWrapper = function (
   testMethod: (data: {
     ydoc: Y.Doc
     docKey: string
-    server: ServerDebugClient
+    server: DebugClient
     client: Firesync
   }) => Promise<void>
 ) {
@@ -29,10 +29,7 @@ export const testWrapper = function (
     client.connection.minConnectionAttemptDelay = 1
     client.connection.soonConnectionAttemptDelayThreshold = 5
 
-    const server = new ServerDebugClient(
-      `http://localhost:5000`,
-      client.session
-    )
+    const server = new DebugClient(`http://localhost:5000`, client.session)
 
     const { accessToken, refreshToken } = await server.createUser()
     client.session.setSession({ accessToken, refreshToken })

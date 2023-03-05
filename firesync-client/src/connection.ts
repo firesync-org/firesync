@@ -829,7 +829,6 @@ export class Connection extends EventEmitter {
       this._connecting = false
       const message = (event as any).message as string | undefined
       logger.log('ws.onerror', message || 'Unexpected error')
-      console.log(message)
       if (message?.match(/401/)) {
         const error = new AuthError(message)
         this.handleError(error)

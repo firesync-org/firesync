@@ -78,12 +78,49 @@ describe('Auth', () => {
     )
   })
 
-  describe('expired refresh token', () => {
-    test.todo('client.isLoggedIn() in should return false')
+  describe('expired access and refresh tokens', () => {
+    test(
+      'client.isLoggedIn() in should return false',
+      testWrapper({ connect: false }, async ({ client, server }) => {
+        await server.expireTokens({
+          accessToken: client.session.accessToken,
+          refreshToken: client.session.refreshToken
+        })
+        expect(await client.isLoggedIn()).to.equal(false)
+      })
+    )
 
-    test.todo('client.getUser() should throw AuthError')
+    test(
+      'client.getUser() should throw AuthError',
+      testWrapper({ connect: false }, async ({ client, server }) => {
+        await server.expireTokens({
+          accessToken: client.session.accessToken,
+          refreshToken: client.session.refreshToken
+        })
+        await expect(client.getUser()).to.be.rejectedWith(AuthError)
+      })
+    )
 
-    test.todo('client.connection.connect() should throw AuthError')
+    test(
+      'client.connection.connect() should throw AuthError',
+      testWrapper({ connect: false }, async ({ client, server }) => {
+        await server.expireTokens({
+          accessToken: client.session.accessToken,
+          refreshToken: client.session.refreshToken
+        })
+
+        let error: Error | null
+        client.connection.on('error', (_error) => {
+          error = _error
+        })
+
+        client.connection.connect()
+
+        await tryUntil(async () => {
+          expect(error).is.instanceOf(AuthError)
+        })
+      })
+    )
   })
 
   describe('expired access token should refresh', () => {
@@ -92,6 +129,8 @@ describe('Auth', () => {
     test.todo('client.getUser() should return user')
 
     test.todo('client.connection.connect() should connect')
+
+    test.todo('refresh token should get refreshed')
   })
 
   describe('valid session', () => {

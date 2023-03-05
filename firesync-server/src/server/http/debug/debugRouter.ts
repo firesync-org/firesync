@@ -33,6 +33,33 @@ export const debugRouter = () => {
     })
   )
 
+  debugRouter.post(
+    '/tokens/expire',
+    requestHandler(async (req, res) => {
+      const refreshToken = req.body.refresh_token
+      if (typeof refreshToken === 'string') {
+        await db
+          .knex('refresh_tokens')
+          .update({
+            expires_at: new Date().toISOString()
+          })
+          .where('token', refreshToken)
+      }
+
+      const accessToken = req.body.access_token
+      if (typeof accessToken === 'string') {
+        await db
+          .knex('access_tokens')
+          .update({
+            expires_at: new Date().toISOString()
+          })
+          .where('token', accessToken)
+      }
+
+      res.json({})
+    })
+  )
+
   debugRouter.get(
     '/docs/:docKey/sv',
     requestHandler(async (req, res) => {
