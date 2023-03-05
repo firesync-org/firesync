@@ -68,7 +68,8 @@ export const FiresyncServer = ({
 
   app.get('/user', userController.getUser)
 
-  app.post('/auth/token', tokenController.refreshAccessToken)
+  app.post('/auth/tokens', tokenController.refreshAccessToken)
+  app.post('/auth/tokens/revoke', tokenController.revokeTokens)
 
   app.get('/auth/google', googleAuthController.startAuth)
   app.get('/auth/google/callback', googleAuthController.callback)

@@ -77,6 +77,26 @@ export const tokens = {
     return { accessToken, expiresInSeconds }
   },
 
+  async revokeRefreshToken(refreshToken: string) {
+    // TODO: Revoke all refresh + access tokens derived from this token
+    await db
+      .knex('refresh_tokens')
+      .update({
+        revoked: true
+      })
+      .where('token', refreshToken)
+  },
+
+  async revokeAccessToken(accessToken: string) {
+    // TODO: Revoke all refresh + access tokens derived from this token
+    await db
+      .knex('access_tokens')
+      .update({
+        revoked: true
+      })
+      .where('token', accessToken)
+  },
+
   async getUserIdFromAccessToken(accessToken: string) {
     const now = new Date()
 

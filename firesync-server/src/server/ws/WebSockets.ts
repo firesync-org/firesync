@@ -125,10 +125,7 @@ export class WebSocketTransports {
     }
     const projectId = project.id
 
-    logger.debug(
-      { url: request.url, projectId, projectName: project.name },
-      'onUpgrade'
-    )
+    logger.debug({ projectId, projectName: project.name }, 'onUpgrade')
 
     this.wss.handleUpgrade(request, socket, head, (ws) => {
       this.initializeConnection(ws, userId, projectId)

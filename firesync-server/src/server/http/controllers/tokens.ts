@@ -19,5 +19,19 @@ export const tokenController = {
       expires_in: expiresInSeconds,
       token_type: 'bearer'
     })
+  }),
+
+  revokeTokens: requestHandler(async (req, res) => {
+    const refreshToken = req.body.refresh_token
+    if (typeof refreshToken === 'string') {
+      await tokens.revokeRefreshToken(refreshToken)
+    }
+
+    const accessToken = req.body.access_token
+    if (typeof accessToken === 'string') {
+      await tokens.revokeAccessToken(accessToken)
+    }
+
+    res.json({})
   })
 }

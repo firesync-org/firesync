@@ -77,7 +77,7 @@ export class Session {
       const result = await this.api.request<{
         access_token: string
         refresh_token: string
-      }>('auth/token?grant_type=refresh_token', {
+      }>('auth/tokens?grant_type=refresh_token', {
         method: 'POST',
         body: JSON.stringify({ refresh_token: refreshToken })
       })

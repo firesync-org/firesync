@@ -57,6 +57,21 @@ export default class Firesync {
     return true
   }
 
+  async logOut() {
+    await this.revokeSession()
+    this.session.clearSession()
+  }
+
+  async revokeSession() {
+    await this.api.request('auth/tokens/revoke', {
+      method: 'POST',
+      body: JSON.stringify({
+        access_token: this.session.accessToken,
+        refresh_token: this.session.refreshToken
+      })
+    })
+  }
+
   async getUser() {
     return await this.api.requestWithAccessToken<{ userId?: number }>(
       'user',
