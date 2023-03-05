@@ -179,9 +179,9 @@ export class Connection extends EventEmitter {
       this.emit('error', error)
     } else {
       console.error(
-        "No registered listeners for error event, so throwing error. Register a listener with connection.on('error') to avoid this."
+        "No registered listeners for error event, so logging error. Register a listener with connection.on('error') to avoid this."
       )
-      throw error
+      console.error(error)
     }
   }
 
@@ -825,11 +825,13 @@ export class Connection extends EventEmitter {
     this.ws.onerror = (event) => {
       this._connected = false
       this._connecting = false
-      const message = (event as any).message as string | undefined
-      logger.log('ws.onerror', message || 'Unexpected error')
-      if (message?.match(/401/)) {
-        const error = new AuthError()
-        this.handleError(error)
+      const message =
+        ((event as any).message as string | undefined) || 'Unexpected error'
+      logger.log('ws.onerror', message)
+      if (message.match(/401/)) {
+        this.refreshAccessTokenAndReconnect()
+      } else {
+        this.handleError(new Error(message))
       }
     }
 
@@ -863,6 +865,18 @@ export class Connection extends EventEmitter {
       this.ws.close()
     }
     this.connect()
+  }
+
+  async refreshAccessTokenAndReconnect() {
+    // Don't try to reconnect while refreshing token
+    this._wantToBeConnected = false
+    try {
+      await this.session.refreshAccessToken()
+    } catch (error) {
+      return this.handleError(error as Error)
+    }
+
+    this.reconnect()
   }
 
   private reconnectWithDelay({ soon = false }: { soon?: boolean } = {}) {

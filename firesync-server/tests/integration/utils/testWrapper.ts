@@ -29,6 +29,10 @@ export const testWrapper = function (
     client.connection.minConnectionAttemptDelay = 1
     client.connection.soonConnectionAttemptDelayThreshold = 5
 
+    client.connection.on('error', () => {
+      // stop lots of expected errors being logged
+    })
+
     const server = new DebugClient(`http://localhost:5000`, client.session)
 
     const { accessToken, refreshToken } = await server.createUser()

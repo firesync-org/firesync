@@ -73,7 +73,7 @@ export default class Firesync {
   }
 
   async getUser() {
-    return await this.api.requestWithAccessToken<{ userId?: number }>(
+    return await this.api.requestWithAccessToken<{ userId: string }>(
       'user',
       this.session
     )

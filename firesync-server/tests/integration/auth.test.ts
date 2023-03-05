@@ -142,11 +142,41 @@ describe('Auth', () => {
   })
 
   describe('expired access token should refresh', () => {
-    test.todo('client.isLoggedIn() in should return true')
+    test(
+      'client.isLoggedIn() in should return true',
+      testWrapper({ connect: false }, async ({ client, server }) => {
+        await server.expireTokens({
+          accessToken: client.session.accessToken
+        })
+        expect(await client.isLoggedIn()).to.equal(true)
+      })
+    )
 
-    test.todo('client.getUser() should return user')
+    test(
+      'client.getUser() should return user',
+      testWrapper({ connect: false }, async ({ client, server }) => {
+        await server.expireTokens({
+          accessToken: client.session.accessToken
+        })
+        const user = await client.getUser()
+        expect(typeof user.userId).to.equal('string')
+      })
+    )
 
-    test.todo('client.connection.connect() should connect')
+    test(
+      'client.connection.connect() should connect',
+      testWrapper({ connect: false }, async ({ client, server }) => {
+        await server.expireTokens({
+          accessToken: client.session.accessToken
+        })
+
+        client.connection.connect()
+
+        await tryUntil(async () => {
+          expect(client.connection.connected).to.equal(true)
+        })
+      })
+    )
 
     test.todo('refresh token should get refreshed')
   })

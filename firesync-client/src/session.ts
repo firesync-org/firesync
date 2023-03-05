@@ -5,7 +5,7 @@ import { AuthError } from './shared/errors'
 const logger = logging('session')
 
 type StoredSession = {
-  accessToken: string
+  accessToken?: string
   refreshToken: string
 }
 
@@ -70,6 +70,11 @@ export class Session {
     if (!refreshToken) {
       throw new AuthError('Cannot refresh access token without refresh token')
     }
+
+    // Clear accessToken immediately
+    this.setSession({
+      refreshToken
+    })
 
     logger.debug('refreshing access token')
 
