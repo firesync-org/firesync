@@ -770,9 +770,7 @@ export class Connection extends EventEmitter {
 
     const accessToken = this.session.accessToken
     if (!accessToken) {
-      return this.handleError(
-        new AuthError('Cannot connect with no access token')
-      )
+      return this.handleError(new AuthError())
     }
 
     logger.debug(
@@ -830,7 +828,7 @@ export class Connection extends EventEmitter {
       const message = (event as any).message as string | undefined
       logger.log('ws.onerror', message || 'Unexpected error')
       if (message?.match(/401/)) {
-        const error = new AuthError(message)
+        const error = new AuthError()
         this.handleError(error)
       }
     }

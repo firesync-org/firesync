@@ -19,7 +19,10 @@ describe('Auth', () => {
       'client.getUser() should throw AuthError',
       testWrapper({ connect: false }, async ({ client }) => {
         client.session.clearSession()
-        await expect(client.getUser()).to.be.rejectedWith(AuthError)
+        await expect(client.getUser()).to.be.rejectedWith(
+          AuthError,
+          /You are not logged in or your session has expired/
+        )
       })
     )
 
@@ -37,6 +40,9 @@ describe('Auth', () => {
 
         await tryUntil(async () => {
           expect(error).is.instanceOf(AuthError)
+          expect(error?.message).to.match(
+            /You are not logged in or your session has expired/
+          )
         })
       })
     )
@@ -55,7 +61,10 @@ describe('Auth', () => {
       'client.getUser() should throw AuthError',
       testWrapper({ connect: false }, async ({ client }) => {
         await client.revokeSession()
-        await expect(client.getUser()).to.be.rejectedWith(AuthError)
+        await expect(client.getUser()).to.be.rejectedWith(
+          AuthError,
+          /You are not logged in or your session has expired/
+        )
       })
     )
 
@@ -73,6 +82,9 @@ describe('Auth', () => {
 
         await tryUntil(async () => {
           expect(error).is.instanceOf(AuthError)
+          expect(error?.message).to.match(
+            /You are not logged in or your session has expired/
+          )
         })
       })
     )
@@ -97,7 +109,10 @@ describe('Auth', () => {
           accessToken: client.session.accessToken,
           refreshToken: client.session.refreshToken
         })
-        await expect(client.getUser()).to.be.rejectedWith(AuthError)
+        await expect(client.getUser()).to.be.rejectedWith(
+          AuthError,
+          /You are not logged in or your session has expired/
+        )
       })
     )
 
@@ -118,6 +133,9 @@ describe('Auth', () => {
 
         await tryUntil(async () => {
           expect(error).is.instanceOf(AuthError)
+          expect(error?.message).to.match(
+            /You are not logged in or your session has expired/
+          )
         })
       })
     )

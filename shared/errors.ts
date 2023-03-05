@@ -18,7 +18,7 @@ export class FiresyncError extends Error {
 }
 
 export class AuthError extends FiresyncError {
-  constructor(message: string) {
+  constructor(message = 'You are not logged in or your session has expired') {
     super(message, 1)
     this.name = 'AuthError'
     Object.setPrototypeOf(this, AuthError.prototype)

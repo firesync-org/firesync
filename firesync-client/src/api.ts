@@ -19,7 +19,7 @@ export class Api {
     const doRequest = async () => {
       const accessToken = session.accessToken
       if (!accessToken) {
-        throw new AuthError('No access token')
+        throw new AuthError()
       }
 
       return await this.request<ReturnType>(path, {
@@ -66,8 +66,12 @@ export class Api {
         `Unsuccessful request: ${res.status}`,
         res.status
       )
-      if (res.status === 401 || res.status === 403) {
-        error = new AuthError('Not authorized')
+      if (res.status === 401) {
+        error = new AuthError()
+      } else if (res.status === 403) {
+        error = new AuthError(
+          'You do not have permission to access that resource'
+        )
       }
       throw error
     }
