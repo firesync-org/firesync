@@ -34,7 +34,7 @@ export class Api {
     try {
       return await doRequest()
     } catch (error) {
-      if (error instanceof AuthError) {
+      if (error instanceof AuthError && session.refreshToken) {
         logger.debug(
           'api request failed with AuthError, refreshing access token'
         )

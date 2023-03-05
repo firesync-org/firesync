@@ -1,4 +1,3 @@
-import { string } from 'lib0'
 import { Api } from './api'
 import logging from './logging'
 import { AuthError } from './shared/errors'
