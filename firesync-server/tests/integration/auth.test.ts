@@ -178,7 +178,17 @@ describe('Auth', () => {
       })
     )
 
-    test.todo('refresh token should get refreshed')
+    test(
+      'refresh token should get refreshed',
+      testWrapper({ connect: false }, async ({ client, server }) => {
+        const oldRefreshToken = client.session.refreshToken
+        await server.expireTokens({
+          accessToken: client.session.accessToken
+        })
+        expect(await client.isLoggedIn()).to.equal(true)
+        expect(client.session.refreshToken).to.not.equal(oldRefreshToken)
+      })
+    )
   })
 
   describe('valid session', () => {

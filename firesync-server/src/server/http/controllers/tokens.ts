@@ -9,13 +9,15 @@ export const tokenController = {
       throw new BadRequestError('Expected refresh_token')
     }
 
-    const { accessToken, expiresInSeconds } = await tokens.generateAccessToken(
-      refreshToken
-    )
+    const {
+      refreshToken: newRefreshToken,
+      accessToken,
+      expiresInSeconds
+    } = await tokens.refreshAccessToken(refreshToken)
 
     return res.json({
       access_token: accessToken,
-      refresh_token: refreshToken,
+      refresh_token: newRefreshToken,
       expires_in: expiresInSeconds,
       token_type: 'bearer'
     })
