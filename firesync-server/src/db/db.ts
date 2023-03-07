@@ -82,6 +82,7 @@ export type InviteToken = {
 
 export type AccessToken = {
   id: string // bigint is returned as a string
+  family_id: string
   project_user_id: string
   token: string
   expires_at: string
@@ -92,6 +93,7 @@ export type AccessToken = {
 
 export type RefreshToken = {
   id: string // bigint is returned as a string
+  family_id: string
   project_user_id: string
   token: string
   expires_at: string

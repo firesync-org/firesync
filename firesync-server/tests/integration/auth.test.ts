@@ -189,6 +189,25 @@ describe('Auth', () => {
         expect(client.session.refreshToken).to.not.equal(oldRefreshToken)
       })
     )
+
+    test(
+      'previous access token should no longer be valid',
+      testWrapper({ connect: false }, async ({ client }) => {
+        const previousAccessToken = client.session.accessToken
+        const previousRefreshToken = client.session.refreshToken
+
+        await client.session.refreshAccessToken()
+        expect(await client.isLoggedIn()).to.equal(true)
+
+        // Set both access and refresh token so that we can't just refresh
+        // the access token silently!
+        client.session.setSession({
+          accessToken: previousAccessToken,
+          refreshToken: previousRefreshToken!
+        })
+        expect(await client.isLoggedIn()).to.equal(false)
+      })
+    )
   })
 
   describe('valid session', () => {

@@ -2,6 +2,11 @@ import { Request } from 'express'
 import { db } from '../../db/db'
 import crypto from 'node:crypto'
 import { UnauthorizedError } from '../http/helpers/errors'
+import { UnexpectedInternalStateError } from '../../shared/errors'
+import { Knex } from 'knex'
+import { logging } from '../lib/Logging/Logger'
+
+const logger = logging.child('tokens')
 
 const SECONDS = 1
 const MINUTES = 60 * SECONDS
@@ -17,9 +22,14 @@ const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 60 * MINUTES
 export const tokens = {
   async generateTokens(userId: string, txn = db.knex) {
     return await txn.transaction(async (txn) => {
-      const { refreshToken } = await this.generateRefreshToken(userId, txn)
+      const { refreshToken, familyId } = await this.generateRefreshToken(
+        userId,
+        undefined,
+        txn
+      )
       const { accessToken, expiresInSeconds } = await this.generateAccessToken(
         refreshToken,
+        familyId,
         txn
       )
       return {
@@ -30,7 +40,11 @@ export const tokens = {
     })
   },
 
-  async generateRefreshToken(userId: string, txn = db.knex) {
+  async generateRefreshToken(
+    userId: string,
+    familyId: string | undefined,
+    txn = db.knex
+  ) {
     const expiresInSeconds = REFRESH_TOKEN_EXPIRES_IN_SECONDS
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000)
 
@@ -38,16 +52,29 @@ export const tokens = {
       .randomBytes(REFRESH_TOKEN_BYTES)
       .toString('base64url')
 
-    await txn('refresh_tokens').insert({
-      project_user_id: userId,
-      expires_at: expiresAt.toISOString(),
-      token: refreshToken
-    })
+    const [row] = await txn('refresh_tokens')
+      .insert({
+        project_user_id: userId,
+        family_id: familyId,
+        expires_at: expiresAt.toISOString(),
+        token: refreshToken
+      })
+      .returning(['family_id'])
 
-    return { refreshToken, expiresInSeconds }
+    if (row === undefined) {
+      throw new UnexpectedInternalStateError(
+        'expected refresh_token to have been created'
+      )
+    }
+
+    return { refreshToken, expiresInSeconds, familyId: row.family_id }
   },
 
-  async generateAccessToken(refreshToken: string, txn = db.knex) {
+  async generateAccessToken(
+    refreshToken: string,
+    familyId: string,
+    txn = db.knex
+  ) {
     const expiresInSeconds = ACCESS_TOKEN_EXPIRES_IN_SECONDS
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000)
 
@@ -59,6 +86,7 @@ export const tokens = {
 
     await db.knex('access_tokens').insert({
       project_user_id: refreshTokenRow.project_user_id,
+      family_id: familyId,
       expires_at: expiresAt.toISOString(),
       token: accessToken
     })
@@ -70,15 +98,23 @@ export const tokens = {
     return await txn.transaction(async (txn) => {
       const refreshTokenRow = await this._getRefreshTokenRow(refreshToken, txn)
 
-      // TODO: Invalidate all existing access tokens as well - need 'family' id first
-      this.revokeRefreshToken(refreshToken, txn)
+      logger.debug(
+        { familyId: refreshTokenRow.family_id },
+        'refreshing access token'
+      )
+
+      // Revoke old tokens
+      await this._revokeRefreshTokensByFamilyId(refreshTokenRow.family_id, txn)
+      await this._revokeAccessTokensByFamilyId(refreshTokenRow.family_id, txn)
 
       const { refreshToken: newRefreshToken } = await this.generateRefreshToken(
         refreshTokenRow.project_user_id,
+        refreshTokenRow.family_id,
         txn
       )
       const { accessToken, expiresInSeconds } = await this.generateAccessToken(
         newRefreshToken,
+        refreshTokenRow.family_id,
         txn
       )
 
@@ -91,21 +127,57 @@ export const tokens = {
   },
 
   async revokeRefreshToken(refreshToken: string, txn = db.knex) {
-    // TODO: Revoke all refresh + access tokens derived from this token
+    await txn.transaction(async (txn) => {
+      const refreshTokenRow = await this._getRefreshTokenRowIfExists(
+        refreshToken,
+        txn
+      )
+      if (!refreshTokenRow) {
+        // Token is revoked, expired or missing, so nothing to do
+        return
+      }
+      logger.debug(
+        { familyId: refreshTokenRow.family_id },
+        'revoking refresh token'
+      )
+      await this._revokeRefreshTokensByFamilyId(refreshTokenRow.family_id, txn)
+      await this._revokeAccessTokensByFamilyId(refreshTokenRow.family_id, txn)
+    })
+  },
+
+  async revokeAccessToken(accessToken: string, txn = db.knex) {
+    await txn.transaction(async (txn) => {
+      const accessTokenRow = await this._getAccessTokenRowIfExists(
+        accessToken,
+        txn
+      )
+      if (!accessTokenRow) {
+        // Token is revoked, expired or missing, so nothing to do
+        return
+      }
+      logger.debug(
+        { familyId: accessTokenRow.family_id },
+        'revoking access token'
+      )
+      await this._revokeRefreshTokensByFamilyId(accessTokenRow.family_id, txn)
+      await this._revokeAccessTokensByFamilyId(accessTokenRow.family_id, txn)
+    })
+  },
+
+  async _revokeRefreshTokensByFamilyId(familyId: string, txn: Knex) {
     await txn('refresh_tokens')
       .update({
         revoked: true
       })
-      .where('token', refreshToken)
+      .where('family_id', familyId)
   },
 
-  async revokeAccessToken(accessToken: string, txn = db.knex) {
-    // TODO: Revoke all refresh + access tokens derived from this token
+  async _revokeAccessTokensByFamilyId(familyId: string, txn: Knex) {
     await txn('access_tokens')
       .update({
         revoked: true
       })
-      .where('token', accessToken)
+      .where('family_id', familyId)
   },
 
   async getUserIdFromAccessToken(accessToken: string, txn = db.knex) {
@@ -125,15 +197,24 @@ export const tokens = {
     return await this.getUserIdFromAccessToken(accessToken)
   },
 
-  async _getRefreshTokenRow(refreshToken: string, txn = db.knex) {
+  async _getRefreshTokenRowIfExists(refreshToken: string, txn: Knex) {
     const now = new Date()
 
     const refreshTokenRow = await txn('refresh_tokens')
-      .select('project_user_id')
+      .select('project_user_id', 'family_id')
       .where('token', refreshToken)
       .where('revoked', false)
       .where('expires_at', '>', now.toISOString())
       .first()
+
+    return refreshTokenRow
+  },
+
+  async _getRefreshTokenRow(refreshToken: string, txn: Knex) {
+    const refreshTokenRow = await this._getRefreshTokenRowIfExists(
+      refreshToken,
+      txn
+    )
 
     if (refreshTokenRow === undefined) {
       throw new UnauthorizedError(
@@ -144,15 +225,24 @@ export const tokens = {
     return refreshTokenRow
   },
 
-  async _getAccessTokenRow(accessToken: string, txn = db.knex) {
+  async _getAccessTokenRowIfExists(accessToken: string, txn: Knex) {
     const now = new Date()
 
     const accessTokenRow = await txn('access_tokens')
-      .select('project_user_id')
+      .select('project_user_id', 'family_id')
       .where('token', accessToken)
       .where('revoked', false)
       .where('expires_at', '>', now.toISOString())
       .first()
+
+    return accessTokenRow
+  },
+
+  async _getAccessTokenRow(accessToken: string, txn: Knex) {
+    const accessTokenRow = await this._getAccessTokenRowIfExists(
+      accessToken,
+      txn
+    )
 
     if (accessTokenRow === undefined) {
       throw new UnauthorizedError(
