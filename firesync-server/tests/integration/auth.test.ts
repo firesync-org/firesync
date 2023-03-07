@@ -6,6 +6,34 @@ import { AuthError } from '@firesync/client'
 chai.use(chaiAsPromised)
 
 describe('Auth', () => {
+  describe('valid session', () => {
+    test(
+      'client.isLoggedIn() in should return true',
+      testWrapper({ connect: false }, async ({ client }) => {
+        expect(await client.isLoggedIn()).to.equal(true)
+      })
+    )
+
+    test(
+      'client.getUser() should return user',
+      testWrapper({ connect: false }, async ({ client }) => {
+        const user = await client.getUser()
+        expect(typeof user.userId).to.equal('string')
+      })
+    )
+
+    test(
+      'client.connection.connect() should connect',
+      testWrapper({ connect: false }, async ({ client }) => {
+        client.connection.connect()
+
+        await tryUntil(async () => {
+          expect(client.connection.connected).to.equal(true)
+        })
+      })
+    )
+  })
+
   describe('no session', () => {
     test(
       'client.isLoggedIn() in should return false',
@@ -208,14 +236,6 @@ describe('Auth', () => {
         expect(await client.isLoggedIn()).to.equal(false)
       })
     )
-  })
-
-  describe('valid session', () => {
-    test.todo('client.isLoggedIn() in should return true')
-
-    test.todo('client.getUser() should return user')
-
-    test.todo('client.connection.connect() should connect')
   })
 
   describe('revoking tokens', () => {
