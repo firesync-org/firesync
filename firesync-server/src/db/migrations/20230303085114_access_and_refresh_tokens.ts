@@ -13,7 +13,7 @@ export async function up(knex: Knex): Promise<void> {
     table.bigInteger('project_user_id').unsigned().notNullable()
     table.foreign('project_user_id').references('project_users.id')
 
-    table.text('token').notNullable().index()
+    table.text('token').notNullable().unique()
     table.timestamp('expires_at', { useTz: false }).notNullable()
     table.boolean('revoked').notNullable().defaultTo(false)
   })
@@ -28,7 +28,7 @@ export async function up(knex: Knex): Promise<void> {
     table.bigInteger('project_user_id').unsigned().notNullable()
     table.foreign('project_user_id').references('project_users.id')
 
-    table.text('token').notNullable().index()
+    table.text('token').notNullable().unique()
     table.timestamp('expires_at', { useTz: false }).notNullable()
     table.boolean('revoked').notNullable().defaultTo(false)
   })
