@@ -62,12 +62,17 @@ export default class Firesync {
     this.session.clearSession()
   }
 
-  async revokeSession() {
+  async revokeSession({
+    revokeAccessToken = true,
+    revokeRefreshToken = true
+  } = {}) {
     await this.api.request('auth/tokens/revoke', {
       method: 'POST',
       body: JSON.stringify({
-        access_token: this.session.accessToken,
-        refresh_token: this.session.refreshToken
+        access_token: revokeAccessToken ? this.session.accessToken : undefined,
+        refresh_token: revokeRefreshToken
+          ? this.session.refreshToken
+          : undefined
       })
     })
   }

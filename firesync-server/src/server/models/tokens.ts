@@ -5,6 +5,7 @@ import { UnauthorizedError } from '../http/helpers/errors'
 import { UnexpectedInternalStateError } from '../../shared/errors'
 import { Knex } from 'knex'
 import { logging } from '../lib/Logging/Logger'
+import { AuthError } from '../../../../firesync-client/dist/mjs'
 
 const logger = logging.child('tokens')
 
@@ -78,7 +79,11 @@ export const tokens = {
     const expiresInSeconds = ACCESS_TOKEN_EXPIRES_IN_SECONDS
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000)
 
-    const refreshTokenRow = await this._getRefreshTokenRow(refreshToken, txn)
+    const refreshTokenRow = await this._getRefreshTokenRow(
+      refreshToken,
+      {},
+      txn
+    )
 
     const accessToken = crypto
       .randomBytes(ACCESS_TOKEN_BYTES)
@@ -95,17 +100,32 @@ export const tokens = {
   },
 
   async refreshAccessToken(refreshToken: string, txn = db.knex) {
-    return await txn.transaction(async (txn) => {
-      const refreshTokenRow = await this._getRefreshTokenRow(refreshToken, txn)
+    const result = await txn.transaction(async (txn) => {
+      // If we're trying to refreshing using a revoked token, we should also
+      // revoke ALL tokens.
+      // See https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/#Refresh-Token-Automatic-Reuse-Detection
+      const refreshTokenRow = await this._getRefreshTokenRow(
+        refreshToken,
+        { allowRevokedDANGER: true },
+        txn
+      )
 
       logger.debug(
-        { familyId: refreshTokenRow.family_id },
+        {
+          familyId: refreshTokenRow.family_id,
+          alreadyRevoked: refreshTokenRow.revoked
+        },
         'refreshing access token'
       )
 
       // Revoke old tokens
       await this._revokeRefreshTokensByFamilyId(refreshTokenRow.family_id, txn)
       await this._revokeAccessTokensByFamilyId(refreshTokenRow.family_id, txn)
+
+      // Only issue new tokens if not revoked
+      if (refreshTokenRow.revoked) {
+        return this._RefreshTokenUnauthorizedError() // Throwing will rollback transaction
+      }
 
       const { refreshToken: newRefreshToken } = await this.generateRefreshToken(
         refreshTokenRow.project_user_id,
@@ -124,12 +144,19 @@ export const tokens = {
         expiresInSeconds
       }
     })
+
+    if (result instanceof Error) {
+      throw result
+    } else {
+      return result
+    }
   },
 
   async revokeRefreshToken(refreshToken: string, txn = db.knex) {
     await txn.transaction(async (txn) => {
       const refreshTokenRow = await this._getRefreshTokenRowIfExists(
         refreshToken,
+        {},
         txn
       )
       if (!refreshTokenRow) {
@@ -197,29 +224,40 @@ export const tokens = {
     return await this.getUserIdFromAccessToken(accessToken)
   },
 
-  async _getRefreshTokenRowIfExists(refreshToken: string, txn: Knex) {
+  async _getRefreshTokenRowIfExists(
+    refreshToken: string,
+    { allowRevokedDANGER = false } = {},
+    txn: Knex
+  ) {
     const now = new Date()
 
-    const refreshTokenRow = await txn('refresh_tokens')
-      .select('project_user_id', 'family_id')
+    let tokensQuery = txn('refresh_tokens')
+      .select('project_user_id', 'family_id', 'revoked')
       .where('token', refreshToken)
-      .where('revoked', false)
       .where('expires_at', '>', now.toISOString())
-      .first()
+
+    if (!allowRevokedDANGER) {
+      tokensQuery = tokensQuery.where('revoked', false)
+    }
+
+    const refreshTokenRow = await tokensQuery.first()
 
     return refreshTokenRow
   },
 
-  async _getRefreshTokenRow(refreshToken: string, txn: Knex) {
+  async _getRefreshTokenRow(
+    refreshToken: string,
+    { allowRevokedDANGER = false } = {},
+    txn: Knex
+  ) {
     const refreshTokenRow = await this._getRefreshTokenRowIfExists(
       refreshToken,
+      { allowRevokedDANGER },
       txn
     )
 
     if (refreshTokenRow === undefined) {
-      throw new UnauthorizedError(
-        'Refresh token does not exist, has expired or been revoked'
-      )
+      throw this._RefreshTokenUnauthorizedError()
     }
 
     return refreshTokenRow
@@ -250,5 +288,12 @@ export const tokens = {
       )
     }
     return accessTokenRow
+  },
+
+  _RefreshTokenUnauthorizedError() {
+    // For consistency regardless of where thrown
+    return new UnauthorizedError(
+      'Refresh token does not exist, has expired or been revoked'
+    )
   }
 }

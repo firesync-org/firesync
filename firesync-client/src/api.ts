@@ -6,6 +6,7 @@ const logger = logging('api')
 
 export class Api {
   baseUrl: string
+  autoRefreshAccessToken = true
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
@@ -34,7 +35,11 @@ export class Api {
     try {
       return await doRequest()
     } catch (error) {
-      if (error instanceof AuthError && session.refreshToken) {
+      if (
+        error instanceof AuthError &&
+        session.refreshToken &&
+        this.autoRefreshAccessToken
+      ) {
         logger.debug(
           'api request failed with AuthError, refreshing access token'
         )

@@ -222,29 +222,77 @@ describe('Auth', () => {
       'previous access token should no longer be valid',
       testWrapper({ connect: false }, async ({ client }) => {
         const previousAccessToken = client.session.accessToken
-        const previousRefreshToken = client.session.refreshToken
 
         await client.session.refreshAccessToken()
         expect(await client.isLoggedIn()).to.equal(true)
 
-        // Set both access and refresh token so that we can't just refresh
-        // the access token silently!
         client.session.setSession({
           accessToken: previousAccessToken,
-          refreshToken: previousRefreshToken!
+          refreshToken: client.session.refreshToken!
         })
+
+        client.api.autoRefreshAccessToken = false
         expect(await client.isLoggedIn()).to.equal(false)
       })
     )
   })
 
-  describe('revoking tokens', () => {
-    test.todo('access token should no longer be valid')
+  describe('revoking other tokens', () => {
+    test(
+      'access token should no longer be valid',
+      testWrapper({ connect: false }, async ({ client }) => {
+        await client.revokeSession({
+          revokeAccessToken: true,
+          revokeRefreshToken: false
+        })
+        client.api.autoRefreshAccessToken = false
+        expect(await client.isLoggedIn()).to.equal(false)
+      })
+    )
 
-    test.todo('refresh token should no longer be valid')
+    test(
+      'refresh token should no longer be valid',
+      testWrapper({ connect: false }, async ({ client }) => {
+        await client.revokeSession({
+          revokeAccessToken: false, // Should get revoked anyway with refresh token
+          revokeRefreshToken: true
+        })
+        expect(await client.isLoggedIn()).to.equal(false)
+      })
+    )
 
-    test.todo(
-      'using old refresh token should revoke current refresh and access tokens'
+    test(
+      'using old refresh token should revoke current refresh and access tokens',
+      testWrapper({ connect: false }, async ({ client }) => {
+        // Trying to use an old revoked refreshToken is suspicious so should revoke
+        // the existing refresh token.
+        // See https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/#Refresh-Token-Automatic-Reuse-Detection
+        const previousRefreshToken = client.session.refreshToken!
+
+        await client.session.refreshAccessToken()
+
+        const currentRefreshToken = client.session.refreshToken!
+        const currentAccessToken = client.session.accessToken!
+
+        client.session.setSession({
+          accessToken: client.session.accessToken,
+          refreshToken: previousRefreshToken
+        })
+
+        // Refreshing with previous refresh token should also revoke current access and refresh tokens
+        try {
+          await client.session.refreshAccessToken()
+        } catch {
+          // Expect this to error because refresh token is revoked
+        }
+
+        // Check current tokens were revoked
+        client.session.setSession({
+          accessToken: currentAccessToken,
+          refreshToken: currentRefreshToken
+        })
+        expect(await client.isLoggedIn()).to.equal(false)
+      })
     )
   })
 })
