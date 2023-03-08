@@ -91,8 +91,6 @@ function Editor() {
 
   const quillRef = useRef<ReactQuill | null>(null)
 
-  console.log('render Editor', docKey)
-
   useEffect(() => {
     const ydoc = firesync.connection.subscribe(docKey)
     const quill = quillRef.current?.editor
