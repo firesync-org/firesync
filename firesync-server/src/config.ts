@@ -23,5 +23,5 @@ export const config = {
   SESSION_SECRET: process.env.SESSION_SECRET,
   TRUST_PROXY: process.env.TRUST_PROXY === 'true',
   HOST: process.env.HOST || 'localhost',
-  PORT: parseInt(process.env.POSTGRES_PORT || '5000')
+  PORT: parseInt(process.env.PORT || '5000')
 }
