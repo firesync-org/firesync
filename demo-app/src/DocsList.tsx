@@ -2,15 +2,21 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { firesync } from './firesync'
 
+type Doc = {
+  docKey: string
+  role: string
+}
+
 export default function DocIndex() {
-  const [docs, setDocs] = useState<{ docKey: string }[]>([])
+  const [docs, setDocs] = useState<Doc[]>([])
   const [newDocKey, setNewDocKey] = useState('')
 
   useEffect(() => {
     firesync.getUserRoles().then(({ user: { roles } }) =>
       setDocs(
         roles.map((r) => ({
-          docKey: r.docKey
+          docKey: r.docKey,
+          role: r.role
         }))
       )
     )
@@ -24,20 +30,33 @@ export default function DocIndex() {
       .then(({ user: { roles } }) =>
         setDocs(
           roles.map((r) => ({
-            docKey: r.docKey
+            docKey: r.docKey,
+            role: r.role
           }))
         )
       )
+  }
+
+  const displayRole = (role: string) => {
+    if (role === 'admin') return 'Owner'
+    if (role === 'write') return 'Editor'
+    if (role === 'read') return 'Reader'
+    return 'Unknown'
   }
 
   return (
     <>
       <h1 className="h5 mb-3">Docs</h1>
       <div className="d-grid gap-2">
-        {docs.map(({ docKey }) => (
-          <Link to={`docs/${encodeURIComponent(docKey)}`}>
+        {docs.map(({ docKey, role }) => (
+          <Link
+            to={`docs/${encodeURIComponent(docKey)}`}
+            className="text-decoration-none">
             <div key={docKey} className="card">
-              <div className="card-body px-3 py-2">{docKey}</div>
+              <div className="card-body px-3 py-2 d-flex justify-content-between">
+                <div>{docKey}</div>
+                <div className="text-secondary">{displayRole(role)}</div>
+              </div>
             </div>
           </Link>
         ))}
