@@ -77,6 +77,10 @@ export default class Firesync {
     })
   }
 
+  async logIn({ provider }: { provider: string }) {
+    window.location.href = `${this.baseUrl}/auth/${provider}`
+  }
+
   async getUser() {
     return await this.api.requestWithAccessToken<{ userId: string }>(
       'user',

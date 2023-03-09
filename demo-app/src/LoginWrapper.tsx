@@ -3,6 +3,7 @@ import { firesync } from './firesync'
 
 export default function LoginWrapper({ children }: { children: ReactNode }) {
   const [loggedIn, setLoggedIn] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const getUser = async () => {
@@ -12,25 +13,66 @@ export default function LoginWrapper({ children }: { children: ReactNode }) {
       } else {
         setLoggedIn(false)
       }
+      setLoading(false)
     }
     getUser()
   }, [])
 
-  // TODO: Loading state
+  const logIn = (provider: string) => {
+    firesync.logIn({ provider })
+  }
 
-  if (!loggedIn) {
+  const logOut = async () => {
+    await firesync.logOut()
+    setLoggedIn(false)
+  }
+
+  if (loading) {
     return (
-      <div className="card mb-2">
-        <div className="card-body">
-          <a
-            className="btn btn-primary mt-2"
-            href={`${firesync.baseUrl}/auth/google`}>
-            Log In
-          </a>
+      <div className="container py-4">
+        <div className="row justify-content-center">
+          <div className="spinner-grow" role="status" />
         </div>
       </div>
     )
   }
 
-  return <>{children}</>
+  if (!loggedIn) {
+    return (
+      <div className="container py-4">
+        <div className="row justify-content-center">
+          <div className="col" style={{ maxWidth: '500px' }}>
+            <div className="card">
+              <div className="card-body">
+                <div className="d-grid">
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => logIn('google')}>
+                    Log in with Google
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container">
+      <nav className="navbar navbar-light">
+        <a className="navbar-brand" href="#">
+          FireSync Demo App
+        </a>
+        <button
+          type="button"
+          className="btn btn-outline-primary"
+          onClick={() => logOut()}>
+          Log Out
+        </button>
+      </nav>
+      {children}
+    </div>
+  )
 }

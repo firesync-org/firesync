@@ -27,11 +27,9 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-    <div className="container py-3">
-      <LoginWrapper>
-        <RouterProvider router={router} />
-      </LoginWrapper>
-    </div>
+    <LoginWrapper>
+      <RouterProvider router={router} />
+    </LoginWrapper>
   )
 }
 
