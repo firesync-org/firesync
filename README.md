@@ -6,20 +6,17 @@
 
 FireSync gives you everything you need to build a real-time collaborative app out-of-box. You can focus on your application's core business logic while the FireSync open-source back-end and client libraries give you:
 
-**🚀 Flexible Yjs documents** <br/>
-[Yjs](https://github.com/yjs/yjs) is fast library for conflict-free real-time collaboration and provides flexible data types including rich-text, dictionaries and lists for whatever your application needs. There is a rich ecosytem of available libraries to help you build your app on top of Yjs, such as [TODO]
-
-**🗄️ [Postgres](https://www.postgresql.org/) backed storage** <br/>
-Data is stored in Postgres for a reliable, persistent and scalable back-end. Postgres is an industry standard so hosting and scaling your app on top of Postgres is easy.
-
-**🧑 User management** <br/>
-Users can register and login out of the box via OAuth providers like Google, or with direct email/password login (coming soon). If you have your own user authentication syste already then you can plug that in too (coming soon).
-
-**🔓 Role based permissions** <br/>
-Documents are only available to the users that have been granted explicit permissions to access them, with a flexible set of roles.
-
-**📧 Invite emails** <br/>
-Invite users to access a document with just an email address. Whether the user is already or not, FireSync handles the complexity of getting them logged in and into the correct document.
+* **🚀 Real-time collaboration over arbitrary data via [Yjs](https://github.com/yjs/yjs)**
+* **🗄️ [Postgres](https://www.postgresql.org/) backed storage**
+* **🧑 User management out of the box**
+* **🔓 Role based permissions**
+* **📧 Email invites to join docs (coming soon)**
+* **👀 Online indicators, cursors and focus indicators of other users (coming soon)**
+* **🕒 Full browseable history of changes to a doc (coming soon)**
+* **↩️ Rollback to previous versions (coming soon)**
+* **💬 Comments anywhere in your data structure (coming soon)**
+* **💡 Suggesting mode and track changes (coming soon)**
+* **🔔 Notifications for changes and comments in document (coming soon)**
 
 ## Getting Started
 
