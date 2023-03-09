@@ -1,7 +1,7 @@
 export POSTGRES_PASSWORD=postgres
 export POSTGRES_USER=postgres
 export POSTGRES_HOST=localhost
-export POSTGRES_DATABASE=petal_pro_dev
+export POSTGRES_DATABASE=firesync
 export POSTGRES_PORT=5432
 
 # Set a random session secret

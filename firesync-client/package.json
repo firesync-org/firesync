@@ -20,6 +20,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "@firesync/client": "^0.0.1-alpha.1",
+    "@firesync/server": "^0.0.1-alpha.2",
     "@reactivedata/react": "^0.2.1",
     "@reactivedata/reactive": "^0.2.0",
     "@syncedstore/core": "^0.4.2",

@@ -36,16 +36,15 @@ $ npm install @firesync/server
 You will need a Postgres database. If you don't have one running you can start one quickly using docker:
 
 ```
-$ docker run --name firesync-postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres
+$ docker run --name firesync-postgres -e POSTGRES_PASSWORD=postgres POSTGRES_DATABASE=firesync -d -p 5432:5432 postgres
 ```
 
 Run `@firesync/server setup` to create the necessary tables in Postgres and set up the default project:
 
 ```bash
-$ export SESSION_SECRET=banana # TODO: Move to a database setting
 $ export POSTGRES_USER=postgres
 $ export POSTGRES_PASSWORD=postgres
-$ export POSTGRES_DATABASE=postgres
+$ export POSTGRES_DATABASE=firesync
 $ npx @firesync/server setup
 ```
 
