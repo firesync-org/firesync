@@ -5,7 +5,6 @@ import { UnauthorizedError } from '../http/helpers/errors'
 import { UnexpectedInternalStateError } from '../../shared/errors'
 import { Knex } from 'knex'
 import { logging } from '../lib/Logging/Logger'
-import { AuthError } from '../../../../firesync-client/dist/mjs'
 
 const logger = logging.child('tokens')
 
