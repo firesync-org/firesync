@@ -61,7 +61,7 @@ FireSync will be running at (localhost:5000)[http://localhost:5000].
 To allow users to log in via Google Oauth, [create some Google OAuth Client Id credentials](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and configure them for your project. You'll need to specify `https://localhost:5000/auth/google/callback` as an 'Authorized redirect URI' for the OAuth credentials.
 
 ```
-$ npx @firesync/server google_auth configure --client-id <your-id>.apps.googleusercontent.com --client-secret <your-secret>
+$ npx @firesync/server google_auth configure --client-id <client-id> --client-secret <client-secret>
 ```
 
 ### Building your app
@@ -72,12 +72,6 @@ We'll demonstrate how to build a very simple collaborative React app using FireS
 $ npx create-react-app acme-frontend
 $ cd acme-frontend
 $ npm start
-```
-
-Configure the server to allow the front-end to communicate with it:
-
-```
-npx @firesync/server projects configure --cors-allowed-origins http://localhost:3000
 ```
 
 Configure the server to redirect back to your app after authenticating with Google:
