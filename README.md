@@ -51,7 +51,7 @@ You can now start FireSync:
 $ npx @firesync/server server
 ```
 
-FireSync will be running at (localhost:5000)[http://localhost:5000].
+FireSync will be running at [localhost:5000](http://localhost:5000).
 
 ### User authentication
 
