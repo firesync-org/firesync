@@ -86,6 +86,8 @@ Install `@firesync/client`:
 $ npm install @firesync/client
 ```
 
+#### Configure Client
+
 Configure FireSync to point to our back-end:
 
 ```ts
@@ -95,29 +97,72 @@ const firesync = new Firesync({
 })
 ```
 
-We can then check if we're logged in, and start the log in flow via Google if not:
+#### Authentication
 
-**TODO: It's a bit weird that `host` below doesn't match `host` above (it's had `project` prepended to it)**
+We can check if we're logged in, and display either a logged in or logged out button depending. See [LoginWrapper](https://github.com/firesync-org/firesync/blob/main/demo-app/src/LoginWrapper.tsx) in the `demo-app/` folder for a more detailed example.
 
-```ts
-firesync.getUser()
-  .then(({ userId }) => {
-    if (userId !== undefined) {
-      console.log('Logged in!')
-    } else {
-      window.location = `${firesync.host}/auth/google`
-    }
-  })
+```tsx
+export default function Login() {
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    firesync.isLoggedIn().then((loggedIn) => {
+      setLoggedIn(loggedIn)
+      setLoading(false)
+    })
+  }, [])
+
+  const logIn = (provider: string) => {
+    // Will redirect to the FireSync server to start the Google
+    // OAuth flow
+    firesync.logIn({ provider })
+  }
+
+  const logOut = async () => {
+    await firesync.logOut()
+    setLoggedIn(false)
+  }
+
+  if (loading) {
+    return <div>Loading...</div>
+  } else if (loggedIn) {
+    return <button onClick={() => logOut()}>Log Out</button>
+  } else {
+    return <button onClick={() => logIn('google')}>Log in with Google</button>
+  }
+}
+
 ```
 
-Once we're logged in we can create a new collaborative document:
+#### List and Creating Documents
+
+Once you're logged in you can list the docs your user has access to:
+
+```tsx
+firesync.getUserRoles().then(({ user: { roles } }) => {
+  console.log('You can access the following documents:', roles.map((r) => r.docKey))
+})
+```
+
+And create a new collaborative document:
 
 ```ts
 firesync.createDoc('foo')
-  .then(() => { /* ... */ })
+  .then(() => { console.log('successfully created foo!') })
 ```
 
-We can then subscribe to this document, and bind to a [Quill](https://github.com/quilljs/quill) rich text editor:
+See [DocsList](https://github.com/firesync-org/firesync/blob/main/demo-app/src/DocsList.tsx) in the `demo-app/` folder for a more detailed example.
+
+#### Collaborative Editing
+
+The bit you've been waiting for! Once you have a user and a doc you have access to, you can subscribe to it to get a local [Yjs doc](https://github.com/yjs/yjs) which will sync any changes to the FireSync back-end and recieve any changes from other users.
+
+```ts
+const ydoc = firesync.connection.subscribe('foo')
+```
+
+Here is an example that binds ths FireSync Yjs doc to the [Quill](https://github.com/quilljs/quill) rich-text editor, for real-time collaboration of rich-text documents:
 
 ```tsx
 // You will need to npm install --save react-quill y-quill
@@ -156,16 +201,4 @@ function Editor() {
 }
 ```
 
-## Examples
-
-## Documentation
-
-## How does this compare to X?
-
-* E.g. y-websockets, hocuspocus, y-redis, etc
-
-## Feedback
-
-## License
-
-...
+See [Editor](https://github.com/firesync-org/firesync/blob/main/demo-app/src/Editor.tsx) in the `demo-app/` folder for a more detailed example.

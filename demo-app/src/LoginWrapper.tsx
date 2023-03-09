@@ -6,16 +6,10 @@ export default function LoginWrapper({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const getUser = async () => {
-      const loggedIn = await firesync.isLoggedIn()
-      if (loggedIn) {
-        setLoggedIn(true)
-      } else {
-        setLoggedIn(false)
-      }
+    firesync.isLoggedIn().then((loggedIn) => {
+      setLoggedIn(loggedIn)
       setLoading(false)
-    }
-    getUser()
+    })
   }, [])
 
   const logIn = (provider: string) => {

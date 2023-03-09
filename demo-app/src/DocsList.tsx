@@ -7,7 +7,7 @@ type Doc = {
   role: string
 }
 
-export default function DocIndex() {
+export default function DocsList() {
   const [docs, setDocs] = useState<Doc[]>([])
   const [newDocKey, setNewDocKey] = useState('')
 
