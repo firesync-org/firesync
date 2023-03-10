@@ -9,7 +9,7 @@ export default function PendingInvite() {
 
   if (error) {
     return (
-      <div className="alert alert-danger mb-2" role="alert">
+      <div className="alert alert-danger mb-4" role="alert">
         Sorry, something went wrong accepting your invite. It may have expired.
         Please ask for another invite.
       </div>
@@ -18,7 +18,7 @@ export default function PendingInvite() {
 
   return (
     <div
-      className="alert alert-info mb-2 d-flex justify-content-between"
+      className="alert alert-info mb-4 d-flex justify-content-between"
       role="alert">
       <div className="d-flex align-items-center">
         <span>
