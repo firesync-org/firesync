@@ -1,7 +1,7 @@
 import { Request } from 'express'
 import { BadRequestError, CannotAccessDocError } from './errors'
 import { Project, db } from '../../../db/db'
-import { Role } from '../../ws/auth'
+import { Role } from '../../../shared/roles'
 
 export const getDocKey = (req: Request) => {
   const docKey = req.body.docKey || req.query.docKey

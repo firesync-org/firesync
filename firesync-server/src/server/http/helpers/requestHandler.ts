@@ -22,6 +22,7 @@ export type RequestWithProject = Request & {
       | 'cors_allowed_origins'
       | 'invite_success_redirect_url'
       | 'invite_failure_redirect_url'
+      | 'redeem_invite_url'
       | 'host'
     >
   }

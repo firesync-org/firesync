@@ -1,15 +1,21 @@
 import crypto from 'crypto'
+import querystring from 'node:querystring'
+
 import { db } from '../../../db/db'
 import { getDocId, getDocIdWithoutAuth, getDocKey } from '../helpers/docs'
 import { requestHandler } from '../helpers/requestHandler'
 import { BadRequestError, NotFoundError } from '../helpers/errors'
-import { isRole, roles } from '../../ws/auth'
+import { isRole, roles } from '../../../shared/roles'
 import { UnexpectedInternalStateError } from '../../../shared/errors'
 import { template } from '../helpers/template'
 import { tokens } from '../../models/tokens'
+import { logging } from '../../lib/Logging/Logger'
+
+const logger = logging.child('invites')
 
 export const invitesController = {
   createInvite: requestHandler(async (req, res) => {
+    const project = req.firesync.project
     const userId = await tokens.getUserIdFromRequest(req)
     const docKey = getDocKey(req)
 
@@ -20,9 +26,16 @@ export const invitesController = {
       )
     }
 
-    const docId = await getDocId(req.firesync.project, docKey, userId, [
-      'admin'
-    ])
+    const email = req.body.email
+    if (typeof email !== 'string') {
+      throw new BadRequestError(`Expected email to be a string`)
+    }
+
+    if (!project.redeem_invite_url) {
+      throw new BadRequestError('Project has no redeem_invite_url configured')
+    }
+
+    const docId = await getDocId(project, docKey, userId, ['admin'])
 
     // Expire in 7 days time
     const now = new Date()
@@ -37,13 +50,22 @@ export const invitesController = {
     const token = randomBytes.toString('base64url')
 
     // TODO: Don't allow creating multiple tokens for the same email, just re-send the existing one
+    // TODO: Save email
+
+    const url = `${project.redeem_invite_url}#${querystring.stringify({
+      token,
+      doc_key: docKey,
+      firesync_flow: 'redeem_invite'
+    })}`
+    logger.debug({ role, email, url: url.replace(token, '***') }, 'sent invite')
 
     await db.knex('invite_tokens').insert({
       doc_id: docId,
       token,
       role,
       created_by_project_user_id: userId,
-      expires_at: expiresAt.toISOString()
+      expires_at: expiresAt.toISOString(),
+      emailed_to: email
     })
 
     return res.status(201).json({

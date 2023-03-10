@@ -1,6 +1,6 @@
-import { Role } from '../server/ws/auth'
+import { Role } from '../shared/roles'
 import knex, { Knex } from 'knex'
-import { getConfig, getKnexConfig } from './config'
+import { getKnexConfig } from './config'
 import Pool from 'pg-pool'
 import { Client } from 'pg'
 
@@ -28,6 +28,7 @@ export type Project = {
   cors_allowed_origins?: string
   invite_success_redirect_url?: string
   invite_failure_redirect_url?: string
+  redeem_invite_url?: string
   created_at: string
   updated_at: string
 }

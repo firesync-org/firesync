@@ -35,30 +35,32 @@ export default function Editor() {
 
   return (
     <>
-      <h1 className="h5 mb-3">
-        <Link to="/">Docs</Link> &gt; {docKey}
-      </h1>
+      <div className="d-flex justify-content-between mb-2">
+        <h1 className="h5">
+          <Link to="/">Docs</Link> &gt; {docKey}
+        </h1>
+        <ShareButton docKey={docKey} />
+      </div>
       <div className="bg-white">
         <ReactQuill theme="snow" ref={quillRef} />
       </div>
-      <ShareButton />
     </>
   )
 }
 
-function ShareButton() {
+function ShareButton({ docKey }: { docKey: string }) {
   const [showModal, setShowModal] = useState(false)
 
   return (
     <>
+      <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+        Share
+      </button>
       <ShareModal
+        docKey={docKey}
         show={showModal}
-        onVisibilityChange={(visible) => {
-          console.log('visible', visible)
-          setShowModal(visible)
-        }}
+        onVisibilityChange={(visible) => setShowModal(visible)}
       />
-      <button onClick={() => setShowModal(true)}>Share</button>
     </>
   )
 }

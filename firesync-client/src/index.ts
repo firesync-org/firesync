@@ -2,6 +2,7 @@ import { Api } from './api'
 import { Connection } from './connection'
 import { Session } from './session'
 import { AuthError } from './shared/errors'
+import { Role } from './shared/roles'
 
 // Export the Yjs version we're using because it's important that all code
 // uses the same version, because constructor checks are used to test for
@@ -12,6 +13,7 @@ export { Connection } from './connection'
 export { LogLevel, setLogLevel } from './logging'
 export { MessageType } from './shared/protocol'
 export { AuthError } from './shared/errors'
+export { Role, roles } from './shared/roles'
 export { Session } from './session'
 export { Api } from './api'
 
@@ -90,7 +92,7 @@ export default class Firesync {
 
   async getUserRoles() {
     return await this.api.requestWithAccessToken<{
-      user: { roles: Array<{ docKey: string; userId: number; role: string }> }
+      user: { roles: Array<{ docKey: string; userId: number; role: Role }> }
     }>('api/user/roles', this.session)
   }
 
@@ -101,13 +103,16 @@ export default class Firesync {
     })
   }
 
-  async createInvite(docKey: string, role: string) {
+  async createInvite(
+    docKey: string,
+    { role = 'read', email }: { role?: Role; email?: string } = {}
+  ) {
     return await this.api.requestWithAccessToken(
       'api/docs/invites',
       this.session,
       {
         method: 'POST',
-        body: JSON.stringify({ docKey, role })
+        body: JSON.stringify({ docKey, role, email })
       }
     )
   }

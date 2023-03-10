@@ -54,8 +54,8 @@ export default function LoginWrapper({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="container">
-      <nav className="navbar navbar-light">
+    <>
+      <nav className="navbar navbar-light bg-light px-3 mb-3">
         <a className="navbar-brand" href="#">
           FireSync Demo App
         </a>
@@ -66,7 +66,7 @@ export default function LoginWrapper({ children }: { children: ReactNode }) {
           Log Out
         </button>
       </nav>
-      {children}
-    </div>
+      <div className="container">{children}</div>
+    </>
   )
 }

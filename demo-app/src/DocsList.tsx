@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { firesync } from './firesync'
+import { displayRole } from './helpers'
+import { Role } from '@firesync/client'
 
 type Doc = {
   docKey: string
-  role: string
+  role: Role
 }
 
 export default function DocsList() {
@@ -35,13 +37,6 @@ export default function DocsList() {
           }))
         )
       )
-  }
-
-  const displayRole = (role: string) => {
-    if (role === 'admin') return 'Owner'
-    if (role === 'write') return 'Editor'
-    if (role === 'read') return 'Reader'
-    return 'Unknown'
   }
 
   return (

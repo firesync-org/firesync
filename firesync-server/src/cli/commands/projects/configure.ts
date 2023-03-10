@@ -25,6 +25,11 @@ export default class Configure extends Command {
     'invite-failure-redirect-url': Flags.string({
       summary: 'URL to redirect to after an invite to a doc has failed',
       env: 'FIRESYNC_INVITE_FAILURE_REDIRECT_URL'
+    }),
+
+    'redeem-invite-url': Flags.string({
+      summary: 'URL to direct a user to when accepting an invite',
+      env: 'FIRESYNC_REDEEM_INVITE_URL'
     })
   }
 
@@ -37,7 +42,8 @@ export default class Configure extends Command {
         'id',
         'cors_allowed_origins',
         'invite_success_redirect_url',
-        'invite_failure_redirect_url'
+        'invite_failure_redirect_url',
+        'redeem_invite_url'
       )
       .where('name', flags.project)
       .first()
@@ -51,6 +57,7 @@ export default class Configure extends Command {
       cors_allowed_origins?: string
       invite_success_redirect_url?: string
       invite_failure_redirect_url?: string
+      redeem_invite_url?: string
     } = {
       ...existing
     }
@@ -63,6 +70,9 @@ export default class Configure extends Command {
     }
     if (flags['invite-failure-redirect-url']) {
       update.invite_failure_redirect_url = flags['invite-failure-redirect-url']
+    }
+    if (flags['redeem-invite-url']) {
+      update.redeem_invite_url = flags['redeem-invite-url']
     }
 
     await db.knex('projects').update(update).where('id', existing.id)
