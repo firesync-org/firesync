@@ -81,15 +81,7 @@ export const FiresyncServer = ({
   apiRouter.get('/user/roles', rolesController.listUserRoles)
 
   apiRouter.post('/docs/invites', invitesController.createInvite)
-  apiRouter.get(
-    '/docs/invites/:token/redeem',
-    invitesController.redeemInviteCsrfForm
-  )
-  apiRouter.post(
-    '/docs/invites/:token/redeem',
-    express.urlencoded({ extended: true }),
-    invitesController.redeemInvite
-  )
+  apiRouter.post('/docs/invites/:token/redeem', invitesController.redeemInvite)
 
   if (enableDebugRouter) {
     app.use('/debug', debugRouter())

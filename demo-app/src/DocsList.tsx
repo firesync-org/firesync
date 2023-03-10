@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { firesync } from './firesync'
 import { displayRole } from './helpers'
 import { Role } from '@firesync/client'
+import PendingInvite from './PendingInvite'
 
 type Doc = {
   docKey: string
@@ -41,13 +42,15 @@ export default function DocsList() {
 
   return (
     <>
+      <PendingInvite />
       <h1 className="h5 mb-3">Docs</h1>
       <div className="d-grid gap-2">
         {docs.map(({ docKey, role }) => (
           <Link
+            key={docKey}
             to={`docs/${encodeURIComponent(docKey)}`}
             className="text-decoration-none">
-            <div key={docKey} className="card">
+            <div className="card">
               <div className="card-body px-3 py-2 d-flex justify-content-between">
                 <div>{docKey}</div>
                 <div className="text-secondary">{displayRole(role)}</div>
@@ -58,7 +61,12 @@ export default function DocsList() {
 
         <hr className="my-2" />
 
-        <form className="row g-3" onSubmit={() => createDoc(newDocKey)}>
+        <form
+          className="row g-3"
+          onSubmit={(e) => {
+            createDoc(newDocKey)
+            e.preventDefault()
+          }}>
           <div className="col">
             <input
               type="text"

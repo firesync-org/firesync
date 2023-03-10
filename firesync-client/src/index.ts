@@ -1,5 +1,6 @@
 import { Api } from './api'
 import { Connection } from './connection'
+import { PendingInvite } from './pendingInvite'
 import { Session } from './session'
 import { AuthError } from './shared/errors'
 import { Role } from './shared/roles'
@@ -29,21 +30,26 @@ export default class Firesync {
   connection: Connection
   session: Session
   api: Api
+  pendingInvite?: PendingInvite
 
   constructor({ baseUrl, connect = true, WebSocket, session }: Options) {
     // TODO: Do some sanity checking about the baseUrl
     // includes protocol, matches protocol of client, etc
     this.baseUrl = baseUrl
     this.api = new Api(baseUrl)
+
     if (session !== undefined) {
       this.session = session
     } else {
       this.session = new Session(this.api)
     }
+
     this.connection = new Connection(this.baseUrl, this.session, {
       connect,
       CustomWebSocket: WebSocket
     })
+
+    this.pendingInvite = PendingInvite.loadFromUrl(this)
   }
 
   async isLoggedIn() {

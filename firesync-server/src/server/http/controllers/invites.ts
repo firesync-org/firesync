@@ -57,6 +57,7 @@ export const invitesController = {
       doc_key: docKey,
       firesync_flow: 'redeem_invite'
     })}`
+    console.log('pretending to send email', url)
     logger.debug({ role, email, url: url.replace(token, '***') }, 'sent invite')
 
     await db.knex('invite_tokens').insert({
@@ -96,6 +97,8 @@ export const invitesController = {
     // TODO: If the user already has a role for the doc, increase it if the invite is better
     // or just flow through to invite_success_redirect_url if not
 
+    // TODO: Handle user already having a role in this doc
+
     const invite = await db
       .knex('invite_tokens')
       .where('doc_id', docId)
@@ -132,35 +135,6 @@ export const invitesController = {
         .where('id', invite.id)
     })
 
-    console.log({ project })
-
-    if (
-      project.invite_success_redirect_url &&
-      project.invite_success_redirect_url !== ''
-    ) {
-      res.redirect(
-        template(project.invite_success_redirect_url, {
-          DOC_KEY_URI_ENCODED: encodeURIComponent(docKey),
-          DOC_KEY: docKey,
-          DOC_ID: docId,
-          ROLE: invite.role
-        })
-      )
-    } else {
-      res.status(201).send()
-    }
-  }),
-
-  // Render a form that makes a post request to redeemInvite
-  // so that the user can redeem the invite through following a link
-  // which makes a GET request
-  redeemInviteCsrfForm: requestHandler(async (req, res) => {
-    const docKey = getDocKey(req)
-    const { token } = req.params
-    if (typeof token !== 'string') {
-      throw new UnexpectedInternalStateError(`Expected token from params`)
-    }
-
-    return res.render('redeemInvite', { docKey, token })
+    res.status(201).json({})
   })
 }
