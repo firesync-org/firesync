@@ -96,7 +96,7 @@ const firesync = new Firesync({
 
 #### Authentication
 
-We can check if we're logged in, and display either a logged in or logged out button depending. See [LoginWrapper](https://github.com/firesync-org/firesync/blob/main/demo-app/src/LoginWrapper.tsx) in the `demo-app/` folder for a more detailed example.
+We can check if the user logged in, and display either a logged in or logged out button. See [LoginWrapper](https://github.com/firesync-org/firesync/blob/main/demo-app/src/LoginWrapper.tsx) in the `demo-app/` folder for a more detailed example.
 
 ```tsx
 export default function Login() {
@@ -134,7 +134,7 @@ export default function Login() {
 
 #### List and Creating Documents
 
-Once you're logged in you can list the docs your user has access to:
+Once the user is logged in you can list the docs the user has access to:
 
 ```tsx
 firesync.getUserRoles().then(({ user: { roles } }) => {
@@ -153,7 +153,7 @@ See [DocsList](https://github.com/firesync-org/firesync/blob/main/demo-app/src/D
 
 #### Collaborative Editing
 
-The bit you've been waiting for! Once you have a user and a doc you have access to, you can subscribe to it to get a local [Yjs doc](https://github.com/yjs/yjs) which will sync any changes to the FireSync back-end and recieve any changes from other users.
+The bit you've been waiting for! Once you have a user and a doc, you can subscribe to it to get a local [Yjs doc](https://github.com/yjs/yjs) which will sync any changes to the FireSync back-end and recieve any changes from other users.
 
 ```ts
 const ydoc = firesync.connection.subscribe('foo')
