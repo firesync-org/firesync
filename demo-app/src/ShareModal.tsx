@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Role, roles } from '@firesync/client'
 
 import { Modal, ModalProps } from './Modal'
 import { displayRole } from './helpers'
 import { firesync } from './firesync'
+import { DocRole } from './DocsList'
 
 type ShareModalProps = ModalProps & {
   docKey: string
@@ -14,6 +15,14 @@ export function ShareModal(props: ShareModalProps) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('write')
   const [sharedWith, setSharedWith] = useState<string | null>(null)
+
+  const [docRoles, setDocRoles] = useState<DocRole[]>([])
+
+  useEffect(() => {
+    firesync
+      .getDocRoles(docKey)
+      .then(({ doc: { roles } }) => setDocRoles(roles))
+  }, [])
 
   const share = async () => {
     await firesync.createInvite(docKey, { email, role })
@@ -31,6 +40,27 @@ export function ShareModal(props: ShareModalProps) {
           aria-label="Close"></button>
       </div>
       <div className="modal-body">
+        <div className="d-grid mb-2">
+          {docRoles.map((role) => (
+            <div key={role.userId}>
+              <div className="row align-items-center">
+                <div className="col">
+                  <div className="row">
+                    <div className="col-8">{role.userId}</div>
+                    <div className="col-4">{displayRole(role.role)}</div>
+                  </div>
+                </div>
+                <div className="col col-auto">
+                  <button type="button" className="btn btn-secondary btn-sm">
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <hr className="my-2" />
+            </div>
+          ))}
+        </div>
+
         {sharedWith !== null && (
           <div className="alert alert-success" role="alert">
             You shared <strong>{docKey}</strong> with <strong>{email}</strong>

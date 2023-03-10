@@ -5,24 +5,18 @@ import { displayRole } from './helpers'
 import { Role } from '@firesync/client'
 import PendingInvite from './PendingInvite'
 
-type Doc = {
+export type DocRole = {
   docKey: string
   role: Role
+  userId: string
 }
 
 export default function DocsList() {
-  const [docs, setDocs] = useState<Doc[]>([])
+  const [docRoles, setDocRoles] = useState<DocRole[]>([])
   const [newDocKey, setNewDocKey] = useState('')
 
   useEffect(() => {
-    firesync.getUserRoles().then(({ user: { roles } }) =>
-      setDocs(
-        roles.map((r) => ({
-          docKey: r.docKey,
-          role: r.role
-        }))
-      )
-    )
+    firesync.getUserRoles().then(({ user: { roles } }) => setDocRoles(roles))
   }, [])
 
   const createDoc = (docKey: string) => {
@@ -30,14 +24,7 @@ export default function DocsList() {
       .createDoc(docKey)
       .then(() => setNewDocKey(''))
       .then(() => firesync.getUserRoles())
-      .then(({ user: { roles } }) =>
-        setDocs(
-          roles.map((r) => ({
-            docKey: r.docKey,
-            role: r.role
-          }))
-        )
-      )
+      .then(({ user: { roles } }) => setDocRoles(roles))
   }
 
   return (
@@ -45,7 +32,7 @@ export default function DocsList() {
       <PendingInvite />
       <h1 className="h5 mb-3">Docs</h1>
       <div className="d-grid gap-2">
-        {docs.map(({ docKey, role }) => (
+        {docRoles.map(({ docKey, role }) => (
           <Link
             key={docKey}
             to={`docs/${encodeURIComponent(docKey)}`}

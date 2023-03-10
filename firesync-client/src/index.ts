@@ -98,8 +98,14 @@ export default class Firesync {
 
   async getUserRoles() {
     return await this.api.requestWithAccessToken<{
-      user: { roles: Array<{ docKey: string; userId: number; role: Role }> }
+      user: { roles: Array<{ docKey: string; userId: string; role: Role }> }
     }>('api/user/roles', this.session)
+  }
+
+  async getDocRoles(docKey: string) {
+    return await this.api.requestWithAccessToken<{
+      doc: { roles: Array<{ docKey: string; userId: string; role: Role }> }
+    }>(`api/docs/roles?${new URLSearchParams({ docKey })}`, this.session)
   }
 
   async createDoc(docKey: string) {

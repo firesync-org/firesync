@@ -14,9 +14,17 @@ export const rolesController = {
       'write'
     ])
 
-    const docRoles = await db.knex('doc_roles').where('doc_id', docId)
+    const docRoles = await db
+      .knex('doc_roles')
+      .select([
+        db.knex.ref('key').withSchema('docs').as('docKey'),
+        db.knex.ref('project_user_id').withSchema('doc_roles').as('userId'),
+        db.knex.ref('role').withSchema('doc_roles')
+      ])
+      .join('docs', 'doc_roles.doc_id', 'docs.id')
+      .where('doc_roles.doc_id', docId)
 
-    res.json({ doc: { key: docKey, roles: docRoles } })
+    res.json({ doc: { roles: docRoles } })
   }),
 
   listUserRoles: requestHandler(async (req, res) => {
