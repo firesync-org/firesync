@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ReactQuill from 'react-quill'
 import { QuillBinding } from 'y-quill'
@@ -6,6 +6,7 @@ import { QuillBinding } from 'y-quill'
 import 'react-quill/dist/quill.snow.css'
 
 import { firesync } from './firesync'
+import { ShareModal } from './ShareModal'
 
 export default function Editor() {
   const { docKey } = useParams()
@@ -40,6 +41,24 @@ export default function Editor() {
       <div className="bg-white">
         <ReactQuill theme="snow" ref={quillRef} />
       </div>
+      <ShareButton />
+    </>
+  )
+}
+
+function ShareButton() {
+  const [showModal, setShowModal] = useState(false)
+
+  return (
+    <>
+      <ShareModal
+        show={showModal}
+        onVisibilityChange={(visible) => {
+          console.log('visible', visible)
+          setShowModal(visible)
+        }}
+      />
+      <button onClick={() => setShowModal(true)}>Share</button>
     </>
   )
 }
