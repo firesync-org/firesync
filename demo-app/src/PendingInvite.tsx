@@ -2,7 +2,7 @@ import { firesync } from './firesync'
 import { usePendingInvite } from './hooks/usePendingInvite'
 
 export default function PendingInvite() {
-  const { invite, accept, error } = usePendingInvite(firesync)
+  const { invite, accept, ignore, error } = usePendingInvite(firesync)
 
   if (!invite) return null
 
@@ -24,9 +24,18 @@ export default function PendingInvite() {
           You have been invited to <strong>{invite.docKey}</strong>.
         </span>
       </div>
-      <button className="btn btn-primary btn-sm" onClick={() => accept()}>
-        Accept
-      </button>
+      <div className="row g-2">
+        <div className="col-auto">
+          <button className="btn btn-primary btn-sm" onClick={() => accept()}>
+            Accept
+          </button>
+        </div>
+        <div className="col-auto">
+          <button className="btn btn-secondary btn-sm" onClick={() => ignore()}>
+            Ignore
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

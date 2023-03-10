@@ -16,9 +16,15 @@ export function usePendingInvite(firesync: Firesync) {
     }
   }
 
+  const ignore = () => {
+    pendingInvite?.ignore()
+    setPendingInvite(undefined)
+  }
+
   return {
     invite,
+    error,
     accept,
-    error
+    ignore
   }
 }

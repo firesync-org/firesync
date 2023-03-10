@@ -21,6 +21,11 @@ export class PendingInvite {
     this.firesync.pendingInvite = undefined
   }
 
+  ignore() {
+    PendingInvite.clearLocalStorage()
+    this.firesync.pendingInvite = undefined
+  }
+
   static load(firesync: Firesync) {
     let invite = this.getInviteFromUrl()
     if (invite) {
@@ -74,5 +79,12 @@ export class PendingInvite {
     }
     const storage = window.localStorage
     storage.setItem(INVITE_KEY, JSON.stringify(invite))
+  }
+
+  private static clearLocalStorage() {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.removeItem(INVITE_KEY)
   }
 }
