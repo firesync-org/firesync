@@ -52,6 +52,7 @@ export const invitesController = {
     // TODO: Don't allow creating multiple tokens for the same email, just re-send the existing one
     // TODO: Save email
 
+    // TODO: Include expiry date in here for quick client side checking of validity
     const url = `${project.redeem_invite_url}#${querystring.stringify({
       token,
       doc_key: docKey,
