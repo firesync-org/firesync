@@ -1,8 +1,0 @@
-install:
-    npm install
-
-start:
-    ./install-packages-from-local.sh
-    rm -rf node_modules/.cache
-    npm start
-    
