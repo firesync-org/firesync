@@ -1,7 +1,10 @@
 import React, { ReactNode, useEffect, useState } from 'react'
 import { firesync } from './firesync'
+import { usePendingInvite } from './hooks/usePendingInvite'
 
 export default function LoginWrapper({ children }: { children: ReactNode }) {
+  const { invite } = usePendingInvite(firesync)
+
   const [loggedIn, setLoggedIn] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -38,6 +41,12 @@ export default function LoginWrapper({ children }: { children: ReactNode }) {
           <div className="col" style={{ maxWidth: '500px' }}>
             <div className="card">
               <div className="card-body">
+                {invite && (
+                  <div className="alert alert-info">
+                    You have been invited to <strong>{invite.docKey}</strong>.
+                    Please log in to collaborate!
+                  </div>
+                )}
                 <div className="d-grid">
                   <button
                     className="btn btn-primary"

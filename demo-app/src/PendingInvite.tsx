@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { firesync } from './firesync'
-import Firesync from '@firesync/client'
+import { usePendingInvite } from './hooks/usePendingInvite'
 
 export default function PendingInvite() {
   const { invite, accept, error } = usePendingInvite(firesync)
@@ -30,26 +29,4 @@ export default function PendingInvite() {
       </button>
     </div>
   )
-}
-
-// TODO: This should go into a library like @firesync/react
-function usePendingInvite(firesync: Firesync) {
-  const [pendingInvite, setPendingInvite] = useState(firesync.pendingInvite)
-  const [error, setError] = useState<any>()
-  const invite = pendingInvite?.invite
-
-  const accept = async () => {
-    try {
-      await pendingInvite?.accept()
-      setPendingInvite(undefined)
-    } catch (error) {
-      setError(error)
-    }
-  }
-
-  return {
-    invite,
-    accept,
-    error
-  }
 }

@@ -49,7 +49,7 @@ export default class Firesync {
       CustomWebSocket: WebSocket
     })
 
-    this.pendingInvite = PendingInvite.loadFromUrl(this)
+    this.pendingInvite = PendingInvite.load(this)
   }
 
   async isLoggedIn() {

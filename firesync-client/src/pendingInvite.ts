@@ -5,6 +5,8 @@ type Invite = {
   docKey: string
 }
 
+const INVITE_KEY = 'firesync-invite'
+
 export class PendingInvite {
   firesync: Firesync
   invite: Invite
@@ -19,15 +21,20 @@ export class PendingInvite {
     this.firesync.pendingInvite = undefined
   }
 
-  // TODO: Save to localstorage and load for later?
-  static loadFromUrl(firesync: Firesync) {
-    const invite = this.parseInviteFromUrl()
+  static load(firesync: Firesync) {
+    let invite = this.getInviteFromUrl()
+    if (invite) {
+      this.saveInviteToLocalStorage(invite)
+    } else {
+      invite = this.getInviteFromLocalStorage()
+    }
+
     if (invite) {
       return new PendingInvite(firesync, invite)
     }
   }
 
-  private static parseInviteFromUrl(): Invite | undefined {
+  private static getInviteFromUrl(): Invite | undefined {
     if (typeof window === 'undefined') {
       return
     }
@@ -44,5 +51,28 @@ export class PendingInvite {
         return { token, docKey }
       }
     }
+  }
+
+  private static getInviteFromLocalStorage(): Invite | undefined {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const storage = window.localStorage
+
+    const invite = storage.getItem(INVITE_KEY)
+    if (invite) {
+      const { token, docKey } = JSON.parse(invite) as Partial<Invite>
+      if (token && docKey) {
+        return { token, docKey }
+      }
+    }
+  }
+
+  private static saveInviteToLocalStorage(invite: Invite) {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const storage = window.localStorage
+    storage.setItem(INVITE_KEY, JSON.stringify(invite))
   }
 }
