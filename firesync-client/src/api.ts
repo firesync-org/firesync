@@ -67,9 +67,15 @@ export class Api {
       const data: ReturnType = await res.json()
       return data
     } else {
+      let json: any = {}
+      try {
+        // Might not have got valid JSON back with an error
+        json = await res.json()
+      } catch {}
       let error: FiresyncError = new ApiRequestError(
-        `Unsuccessful request: ${res.status}`,
-        res.status
+        json.message || `Unsuccessful request: ${res.status}`,
+        res.status,
+        typeof json.code === 'number' ? json.code : undefined
       )
       if (res.status === 401) {
         error = new AuthError()

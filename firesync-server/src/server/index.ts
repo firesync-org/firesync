@@ -16,6 +16,7 @@ import { config } from '../config'
 import { userController } from './http/controllers/user'
 import { tokenController } from './http/controllers/tokens'
 import { logging } from './lib/Logging/Logger'
+import { errorHandler } from './http/middleware/errorHandler'
 
 export { logging } from './lib/Logging/Logger'
 
@@ -104,6 +105,8 @@ export const FiresyncServer = ({
   if (enableDebugRouter) {
     app.use('/debug', debugRouter())
   }
+
+  app.use(errorHandler)
 
   const listen = (host: string, port: number) => {
     return new Promise<Server>((resolve, reject) => {

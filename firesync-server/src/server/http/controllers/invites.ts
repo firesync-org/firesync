@@ -4,10 +4,12 @@ import querystring from 'node:querystring'
 import { db } from '../../../db/db'
 import { getDocId, getDocIdWithoutAuth, getDocKey } from '../helpers/docs'
 import { requestHandler } from '../helpers/requestHandler'
-import { BadRequestError, NotFoundError } from '../helpers/errors'
+import { BadRequestHttpError, NotFoundHttpError } from '../helpers/errors'
 import { isRole, roles } from '../../../shared/roles'
-import { UnexpectedInternalStateError } from '../../../shared/errors'
-import { template } from '../helpers/template'
+import {
+  FiresyncErrorCode,
+  UnexpectedInternalStateError
+} from '../../../shared/errors'
 import { tokens } from '../../models/tokens'
 import { logging } from '../../lib/Logging/Logger'
 
@@ -21,18 +23,20 @@ export const invitesController = {
 
     const role = req.body.role
     if (typeof role !== 'string' || !isRole(role)) {
-      throw new BadRequestError(
+      throw new BadRequestHttpError(
         `Expected role to be one of: ${roles.join(', ')}`
       )
     }
 
     const email = req.body.email
     if (typeof email !== 'string') {
-      throw new BadRequestError(`Expected email to be a string`)
+      throw new BadRequestHttpError(`Expected email to be a string`)
     }
 
     if (!project.redeem_invite_url) {
-      throw new BadRequestError('Project has no redeem_invite_url configured')
+      throw new BadRequestHttpError(
+        'Project has no redeem_invite_url configured'
+      )
     }
 
     const docId = await getDocId(project, docKey, userId, ['admin'])
@@ -100,8 +104,9 @@ export const invitesController = {
       .where('redeemed_at', 'IS', null)
       .first()
     if (invite === undefined) {
-      throw new NotFoundError(
-        `Token does not exist, has expired or has already been redeemed: ${token}`
+      throw new NotFoundHttpError(
+        `Token does not exist, has expired or has already been redeemed: ${token}`,
+        FiresyncErrorCode.INVALID_INVITE_TOKEN_ERROR
       )
     }
 

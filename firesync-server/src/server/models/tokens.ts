@@ -1,7 +1,7 @@
 import { Request } from 'express'
 import { db } from '../../db/db'
 import crypto from 'node:crypto'
-import { UnauthorizedError } from '../http/helpers/errors'
+import { UnauthorizedHttpError } from '../http/helpers/errors'
 import { UnexpectedInternalStateError } from '../../shared/errors'
 import { Knex } from 'knex'
 import { logging } from '../lib/Logging/Logger'
@@ -215,7 +215,7 @@ export const tokens = {
   async getUserIdFromRequest(req: Request) {
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.match(/^Bearer /)) {
-      throw new UnauthorizedError(
+      throw new UnauthorizedHttpError(
         `No access token provided. Please set an 'Authorization: Bearer <access_token>' header`
       )
     }
@@ -282,7 +282,7 @@ export const tokens = {
     )
 
     if (accessTokenRow === undefined) {
-      throw new UnauthorizedError(
+      throw new UnauthorizedHttpError(
         'Access token does not exist, has expired or been revoked'
       )
     }
@@ -291,7 +291,7 @@ export const tokens = {
 
   _RefreshTokenUnauthorizedError() {
     // For consistency regardless of where thrown
-    return new UnauthorizedError(
+    return new UnauthorizedHttpError(
       'Refresh token does not exist, has expired or been revoked'
     )
   }

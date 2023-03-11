@@ -7,7 +7,9 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   }
 
   if (err instanceof HttpError) {
-    return res.status(err.statusCode).send(err.message)
+    return res
+      .status(err.httpStatusCode)
+      .json({ message: err.message, code: err.fsErrorCode })
   } else {
     return next(err)
   }

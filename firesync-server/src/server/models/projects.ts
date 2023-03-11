@@ -1,5 +1,5 @@
 import { db } from '../../db/db'
-import { BadRequestError, NotFoundError } from '../http/helpers/errors'
+import { BadRequestHttpError, NotFoundHttpError } from '../http/helpers/errors'
 import { config } from '../../config'
 import { IncomingMessage } from 'http'
 
@@ -15,7 +15,7 @@ export const projects = {
     }
 
     if (hostName === undefined) {
-      throw new BadRequestError('No host header provided')
+      throw new BadRequestHttpError('No host header provided')
     }
     const host = hostName.split(':')[0] // Strip port
 
@@ -34,7 +34,7 @@ export const projects = {
       .first()
 
     if (project === undefined) {
-      throw new NotFoundError(`Project with host ${host} does not exist`)
+      throw new NotFoundHttpError(`Project with host ${host} does not exist`)
     }
 
     return project

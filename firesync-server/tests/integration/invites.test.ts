@@ -50,11 +50,25 @@ describe('Invites', () => {
   })
 
   describe('Redeeming Invites', () => {
-    test.todo('Valid token grants access to the doc')
+    test(
+      'Wrong token returns invalid',
+      testWrapper({}, async ({ docKey, server }) => {
+        const collaboratorClient = await newUser(server)
+        collaboratorClient.connection.connect()
+
+        let error: Error | null = null
+        try {
+          await collaboratorClient.redeemInvite(docKey, 'made-up-token')
+        } catch (_error) {
+          error = _error as Error
+        }
+
+        console.log(error)
+        collaboratorClient.connection.disconnect()
+      })
+    )
 
     test.todo('Expired token returns invalid')
-
-    test.todo('Missing token returns invalid')
 
     test.todo('User with a lower role gets upgraded')
 

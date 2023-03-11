@@ -1,12 +1,12 @@
 import { Request } from 'express'
-import { BadRequestError, CannotAccessDocError } from './errors'
+import { BadRequestHttpError, CannotAccessDocHttpError } from './errors'
 import { Project, db } from '../../../db/db'
 import { Role } from '../../../shared/roles'
 
 export const getDocKey = (req: Request) => {
   const docKey = req.body.docKey || req.query.docKey
   if (typeof docKey !== 'string') {
-    throw new BadRequestError(`Expected docKey to be provided as a string`)
+    throw new BadRequestHttpError(`Expected docKey to be provided as a string`)
   }
   return docKey
 }
@@ -25,7 +25,7 @@ export const getDocId = async (
     .andWhere('project_user_id', userId)
     .first()
   if (currentRole === undefined || !allowedRoles.includes(currentRole.role)) {
-    throw new CannotAccessDocError(docKey)
+    throw new CannotAccessDocHttpError(docKey)
   }
 
   return docId
@@ -42,7 +42,7 @@ export const getDocIdWithoutAuth = async (
     .andWhere('key', docKey)
     .first()
   if (doc === undefined) {
-    throw new CannotAccessDocError(docKey)
+    throw new CannotAccessDocHttpError(docKey)
   }
 
   return doc.id

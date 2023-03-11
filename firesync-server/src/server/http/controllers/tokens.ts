@@ -1,12 +1,12 @@
 import { requestHandler } from '../helpers/requestHandler'
 import { tokens } from '../../models/tokens'
-import { BadRequestError } from '../helpers/errors'
+import { BadRequestHttpError } from '../helpers/errors'
 
 export const tokenController = {
   refreshAccessToken: requestHandler(async (req, res) => {
     const refreshToken = req.body.refresh_token
     if (typeof refreshToken !== 'string') {
-      throw new BadRequestError('Expected refresh_token')
+      throw new BadRequestHttpError('Expected refresh_token')
     }
 
     const {
