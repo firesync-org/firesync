@@ -6,6 +6,10 @@ import { docStore } from '../../lib/Docs/DocStore'
 import { storage } from '../../lib/Storage'
 import { webSockets } from '../../ws/WebSockets'
 import { tokens } from '../../models/tokens'
+import { BadRequestHttpError } from '../helpers/errors'
+import models from '../../../server/models'
+import { getDocKeyFromRequest } from '../helpers/docs'
+import { isRole } from '../../../shared/roles'
 
 export const debugRouter = () => {
   const debugRouter = express.Router()
@@ -29,7 +33,7 @@ export const debugRouter = () => {
       const { refreshToken, accessToken, expiresInSeconds } =
         await tokens.generateTokens(userId)
 
-      res.json({ refreshToken, accessToken, expiresInSeconds })
+      res.json({ refreshToken, accessToken, expiresInSeconds, userId })
     })
   )
 
@@ -77,16 +81,39 @@ export const debugRouter = () => {
     })
   )
 
+  debugRouter.post(
+    '/docs/:docKey/roles',
+    requestHandler(async (req, res) => {
+      const docKey = req.params.docKey!
+      const docId = await models.docs.getDocIdWithoutAuth(
+        req.firesync.project,
+        docKey
+      )
+
+      const userId = req.body.userId
+      if (typeof userId !== 'string') {
+        throw new BadRequestHttpError('Expected userId')
+      }
+
+      const role = req.body.role
+      if (typeof role !== 'string' || !isRole(role)) {
+        throw new BadRequestHttpError('Expected role')
+      }
+
+      models.roles.setRole(docId, userId, role)
+
+      res.json({})
+    })
+  )
+
   debugRouter.get(
     '/docs/:docKey/sv',
     requestHandler(async (req, res) => {
-      const docId = await docStore.getDocId(
-        req.firesync.project.id,
-        req.params.docKey!
+      const docKey = req.params.docKey!
+      const docId = await models.docs.getDocIdWithoutAuth(
+        req.firesync.project,
+        docKey
       )
-      if (docId === undefined) {
-        return res.status(404).send(`Doc does not exist`)
-      }
 
       const stateVector = await docStore.getStateVector(docId)
       res.json({
@@ -98,13 +125,12 @@ export const debugRouter = () => {
   debugRouter.get(
     '/docs/:docKey/updates',
     requestHandler(async (req, res) => {
-      const docId = await docStore.getDocId(
-        req.firesync.project.id,
-        req.params.docKey!
+      const docKey = req.params.docKey!
+      const docId = await models.docs.getDocIdWithoutAuth(
+        req.firesync.project,
+        docKey
       )
-      if (docId === undefined) {
-        return res.status(404).send(`Doc does not exist`)
-      }
+
       res.json({
         updates: (await storage.getUpdates(docId)).map((buffer) =>
           Array.from(buffer)
@@ -122,13 +148,12 @@ export const debugRouter = () => {
   debugRouter.post(
     '/docs/:docKey/connections/terminate',
     requestHandler(async (req, res) => {
-      const docId = await docStore.getDocId(
-        req.firesync.project.id,
-        req.params.docKey!
+      const docKey = req.params.docKey!
+      const docId = await models.docs.getDocIdWithoutAuth(
+        req.firesync.project,
+        docKey
       )
-      if (docId === undefined) {
-        return res.status(404).send(`Doc does not exist`)
-      }
+
       await webSockets.terminateDocConnections(docId)
       res.send('OK')
     })

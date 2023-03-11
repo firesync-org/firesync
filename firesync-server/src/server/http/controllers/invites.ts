@@ -2,29 +2,29 @@ import crypto from 'crypto'
 import querystring from 'node:querystring'
 
 import { db } from '../../../db/db'
-import { getDocId, getDocIdWithoutAuth, getDocKey } from '../helpers/docs'
+import { getDocKeyFromRequest } from '../helpers/docs'
 import { requestHandler } from '../helpers/requestHandler'
 import { BadRequestHttpError, NotFoundHttpError } from '../helpers/errors'
-import { isRole, roles } from '../../../shared/roles'
+import { isRole, rolePrecendence, roles } from '../../../shared/roles'
 import {
   FiresyncErrorCode,
   UnexpectedInternalStateError
 } from '../../../shared/errors'
-import { tokens } from '../../models/tokens'
 import { logging } from '../../lib/Logging/Logger'
+import models from '../../../server/models'
 
 const logger = logging.child('invites')
 
 export const invitesController = {
   createInvite: requestHandler(async (req, res) => {
     const project = req.firesync.project
-    const userId = await tokens.getUserIdFromRequest(req)
-    const docKey = getDocKey(req)
+    const userId = await models.tokens.getUserIdFromRequest(req)
+    const docKey = getDocKeyFromRequest(req)
 
     const role = req.body.role
     if (typeof role !== 'string' || !isRole(role)) {
       throw new BadRequestHttpError(
-        `Expected role to be one of: ${roles.join(', ')}`
+        `Expected role to be one of: ${new Array(roles).join(', ')}`
       )
     }
 
@@ -39,7 +39,7 @@ export const invitesController = {
       )
     }
 
-    const docId = await getDocId(project, docKey, userId, ['admin'])
+    const docId = await models.docs.getDocId(project, docKey, userId, ['admin'])
 
     // Expire in 7 days time
     const now = new Date()
@@ -53,7 +53,7 @@ export const invitesController = {
     )
     const token = randomBytes.toString('base64url')
 
-    // TODO: Don't allow creating multiple tokens for the same email, just re-send the existing one
+    // TODO: Revoke old invite tokens for the same email address
 
     // TODO: Include expiry date in here for quick client side checking of validity
     const url = `${project.redeem_invite_url}#${querystring.stringify({
@@ -83,26 +83,20 @@ export const invitesController = {
   }),
 
   redeemInvite: requestHandler(async (req, res) => {
-    const docKey = getDocKey(req)
-    const userId = await tokens.getUserIdFromRequest(req)
+    const docKey = getDocKeyFromRequest(req)
+    const userId = await models.tokens.getUserIdFromRequest(req)
     const { token } = req.params
     if (typeof token !== 'string') {
       throw new UnexpectedInternalStateError(`Expected token from params`)
     }
 
     const project = req.firesync.project
-    const docId = await getDocIdWithoutAuth(project, docKey)
+    const docId = await models.docs.getDocIdWithoutAuth(project, docKey)
 
     // TODO: If the user already has a role for the doc, increase it if the invite is better
     // or just flow through to invite_success_redirect_url if not
 
-    const invite = await db
-      .knex('invite_tokens')
-      .where('doc_id', docId)
-      .where('token', token)
-      .where('expires_at', '>', new Date().toISOString())
-      .where('redeemed_at', 'IS', null)
-      .first()
+    const invite = await models.invites.getInvite(docId, token)
     if (invite === undefined) {
       throw new NotFoundHttpError(
         `Token does not exist, has expired or has already been redeemed: ${token}`,
@@ -111,26 +105,24 @@ export const invitesController = {
     }
 
     await db.knex.transaction(async (txn) => {
-      const [docRole] = await txn('doc_roles')
-        .insert({
-          doc_id: invite.doc_id,
-          project_user_id: userId,
-          role: invite.role
-        })
-        .returning(['id'])
-
-      if (docRole === undefined) {
-        throw new UnexpectedInternalStateError(
-          'Expected doc_role to have been created'
+      let redeemedAsRoleId: string
+      const currentRole = await models.roles.getRole(docId, userId)
+      if (
+        !currentRole ||
+        // Only upgrade the user, don't downgrade through invites
+        rolePrecendence[currentRole.role] <= rolePrecendence[invite.role]
+      ) {
+        const newRole = await models.roles.setRole(
+          docId,
+          userId,
+          invite.role,
+          txn
         )
+        redeemedAsRoleId = newRole.id
+      } else {
+        redeemedAsRoleId = currentRole.id
       }
-
-      await txn('invite_tokens')
-        .update({
-          redeemed_at: new Date().toISOString(),
-          redeemed_as_doc_role_id: docRole.id
-        })
-        .where('id', invite.id)
+      await models.invites.markAsRedeemed(invite.id, redeemedAsRoleId, txn)
     })
 
     res.status(201).json({})

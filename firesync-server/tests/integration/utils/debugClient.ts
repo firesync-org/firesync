@@ -1,5 +1,5 @@
 import fetch, { RequestInit } from 'node-fetch'
-import Firesync from '@firesync/client'
+import Firesync, { Role } from '@firesync/client'
 import { getClient } from './getClient'
 
 export class DebugClient {
@@ -15,16 +15,17 @@ export class DebugClient {
     const response = await this.fetch(`/debug/user`, {
       method: 'POST'
     })
-    const { refreshToken, accessToken } = (await response.json()) as {
+    const { refreshToken, accessToken, userId } = (await response.json()) as {
       refreshToken: string
       accessToken: string
       expiresInSeconds: number
+      userId: string
     }
-    return { refreshToken, accessToken }
+    return { refreshToken, accessToken, userId }
   }
 
   async createUserAndClient() {
-    const { accessToken, refreshToken } = await this.createUser()
+    const { accessToken, refreshToken, userId } = await this.createUser()
 
     const client = getClient({
       connect: false
@@ -33,7 +34,7 @@ export class DebugClient {
 
     this.clients.push(client)
 
-    return client
+    return { client, userId }
   }
 
   async expireSessionTokens({
@@ -55,6 +56,16 @@ export class DebugClient {
   async expireInviteToken(token: string) {
     await this.fetch(`/debug/invites/${token}/expire`, {
       method: 'POST'
+    })
+  }
+
+  async createRole(docKey: string, userId: string, role: Role) {
+    await this.fetch(`/debug/docs/${docKey}/roles`, {
+      method: 'POST',
+      body: JSON.stringify({
+        userId,
+        role
+      })
     })
   }
 

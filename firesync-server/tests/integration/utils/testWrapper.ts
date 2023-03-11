@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import Firesync, { Y } from '@firesync/client'
-import { getClient } from './getClient'
 import { DebugClient } from './debugClient'
 import { tryUntil } from './tryUntil'
 import { v4 as uuidv4 } from 'uuid'
@@ -23,7 +22,7 @@ export const testWrapper = function (
   return async function () {
     const server = new DebugClient(`http://localhost:5000`)
 
-    const client = await server.createUserAndClient()
+    const { client } = await server.createUserAndClient()
 
     client.connection.maxConnectionAttemptDelay = 30
     client.connection.minConnectionAttemptDelay = 1

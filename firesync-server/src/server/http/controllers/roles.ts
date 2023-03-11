@@ -1,18 +1,20 @@
 import { requestHandler } from '../helpers/requestHandler'
 import { db } from '../../../db/db'
-import { getDocId, getDocKey } from '../helpers/docs'
+import models from '../../models'
 import { tokens } from '../../models/tokens'
+import { getDocKeyFromRequest } from '../helpers/docs'
 
 export const rolesController = {
   listDocRoles: requestHandler(async (req, res) => {
-    const docKey = getDocKey(req)
+    const docKey = getDocKeyFromRequest(req)
     const userId = await tokens.getUserIdFromRequest(req)
 
-    const docId = await getDocId(req.firesync.project, docKey, userId, [
-      'admin',
-      'read',
-      'write'
-    ])
+    const docId = await models.docs.getDocId(
+      req.firesync.project,
+      docKey,
+      userId,
+      ['admin', 'read', 'write']
+    )
 
     const docRoles = await db
       .knex('doc_roles')

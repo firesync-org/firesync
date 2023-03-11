@@ -1,13 +1,13 @@
 import { db } from '../../../db/db'
 import { UnexpectedInternalStateError } from '../../../shared/errors'
-import { getDocKey } from '../helpers/docs'
+import { getDocKeyFromRequest } from '../helpers/docs'
 import { requestHandler } from '../helpers/requestHandler'
 import { tokens } from '../../models/tokens'
 
 export const docsController = {
   createDoc: requestHandler(async (req, res) => {
     const userId = await tokens.getUserIdFromRequest(req)
-    const docKey = getDocKey(req)
+    const docKey = getDocKeyFromRequest(req)
     const project = req.firesync.project
 
     await db.knex.transaction(async (txn) => {
