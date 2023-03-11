@@ -116,7 +116,9 @@ export class WebSocketTransports {
     } catch (error) {
       console.log('error', error)
       if (error instanceof HttpError) {
-        socket.write(`HTTP/1.1 ${error.statusCode} ${error.meaning}\r\n\r\n`)
+        socket.write(
+          `HTTP/1.1 ${error.httpStatusCode} ${error.meaning}\r\n\r\n`
+        )
         socket.destroy()
         return
       } else {

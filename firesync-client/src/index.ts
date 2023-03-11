@@ -2,7 +2,7 @@ import { Api } from './api'
 import { Connection } from './connection'
 import { PendingInvite } from './pendingInvite'
 import { Session } from './session'
-import { AuthError } from './shared/errors'
+import { FiresyncErrorCode } from './shared/errors'
 import { Role } from './shared/roles'
 
 // Export the Yjs version we're using because it's important that all code
@@ -13,7 +13,7 @@ export { Y } from './y'
 export { Connection } from './connection'
 export { LogLevel, setLogLevel } from './logging'
 export { MessageType } from './shared/protocol'
-export { AuthError } from './shared/errors'
+export * from './shared/errors'
 export { Role, roles } from './shared/roles'
 export { Session } from './session'
 export { Api } from './api'
@@ -53,16 +53,11 @@ export default class Firesync {
   }
 
   async isLoggedIn() {
-    try {
-      await this.getUser()
-    } catch (error) {
-      if (error instanceof AuthError) {
-        return false
-      } else {
-        throw error
-      }
+    const { data, error } = await this.getUser()
+    return {
+      data: typeof data?.userId === 'string',
+      error
     }
-    return true
   }
 
   async logOut() {
@@ -132,7 +127,7 @@ export default class Firesync {
   }
 
   async redeemInvite(docKey: string, token: string) {
-    return await this.api.requestWithAccessToken(
+    const { data, error } = await this.api.requestWithAccessToken(
       `api/docs/invites/${token}/redeem`,
       this.session,
       {
@@ -140,5 +135,11 @@ export default class Firesync {
         body: JSON.stringify({ docKey })
       }
     )
+
+    return {
+      data,
+      error,
+      invalid: error?.code === FiresyncErrorCode.INVALID_INVITE_TOKEN_ERROR
+    }
   }
 }

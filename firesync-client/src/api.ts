@@ -20,7 +20,7 @@ export class Api {
     const doRequest = async () => {
       const accessToken = session.accessToken
       if (!accessToken) {
-        throw new AuthError()
+        return { data: null, error: new AuthError() }
       }
 
       return await this.request<ReturnType>(path, {
@@ -32,22 +32,19 @@ export class Api {
       })
     }
 
-    try {
-      return await doRequest()
-    } catch (error) {
-      if (
-        error instanceof AuthError &&
-        session.refreshToken &&
-        this.autoRefreshAccessToken
-      ) {
-        logger.debug(
-          'api request failed with AuthError, refreshing access token'
-        )
-        await session.refreshAccessToken()
-        return await doRequest()
-      } else {
-        throw error
-      }
+    const { data, error } = await doRequest()
+    if (
+      error &&
+      error instanceof AuthError &&
+      session.refreshToken &&
+      this.autoRefreshAccessToken
+    ) {
+      logger.debug('api request failed with AuthError, refreshing access token')
+      await session.refreshAccessToken()
+      const result = await doRequest()
+      return result
+    } else {
+      return { data, error }
     }
   }
 
@@ -63,16 +60,17 @@ export class Api {
       }
     })
 
+    let error: FiresyncError | null = null
+    let data: ReturnType | null = null
     if (res.status >= 200 && res.status < 300) {
-      const data: ReturnType = await res.json()
-      return data
+      data = await res.json()
     } else {
       let json: any = {}
       try {
         // Might not have got valid JSON back with an error
         json = await res.json()
       } catch {}
-      let error: FiresyncError = new ApiRequestError(
+      error = new ApiRequestError(
         json.message || `Unsuccessful request: ${res.status}`,
         res.status,
         typeof json.code === 'number' ? json.code : undefined
@@ -84,7 +82,8 @@ export class Api {
           'You do not have permission to access that resource'
         )
       }
-      throw error
     }
+
+    return { data, error }
   }
 }

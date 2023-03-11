@@ -1,14 +1,14 @@
 import fetch, { RequestInit } from 'node-fetch'
-import { Session } from '@firesync/client'
-import { string } from 'lib0'
+import Firesync from '@firesync/client'
+import { getClient } from './getClient'
 
 export class DebugClient {
   url: string
-  session: Session
+  clients: Firesync[]
 
-  constructor(url: string, session: Session) {
+  constructor(url: string) {
     this.url = url
-    this.session = session
+    this.clients = []
   }
 
   async createUser() {
@@ -23,9 +23,17 @@ export class DebugClient {
     return { refreshToken, accessToken }
   }
 
-  async getUser() {
-    const response = await this.fetch(`/user`)
-    return await response.json()
+  async createUserAndClient() {
+    const { accessToken, refreshToken } = await this.createUser()
+
+    const client = getClient({
+      connect: false
+    })
+    client.session.setSession({ accessToken, refreshToken })
+
+    this.clients.push(client)
+
+    return client
   }
 
   async expireTokens({
@@ -90,8 +98,7 @@ export class DebugClient {
     const response = await fetch(`${this.url}${path}`, {
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.session.accessToken}`
+        'Content-Type': 'application/json'
       },
       ...options
     })

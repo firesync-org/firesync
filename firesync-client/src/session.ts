@@ -77,25 +77,24 @@ export class Session {
 
     logger.debug('refreshing access token')
 
-    try {
-      const result = await this.api.request<{
-        access_token: string
-        refresh_token: string
-      }>('auth/tokens?grant_type=refresh_token', {
-        method: 'POST',
-        body: JSON.stringify({ refresh_token: refreshToken })
-      })
+    const { data, error } = await this.api.request<{
+      access_token: string
+      refresh_token: string
+    }>('auth/tokens?grant_type=refresh_token', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken })
+    })
 
+    // If we failed to refresh, then our tokens have expired
+    if (error instanceof AuthError) {
+      this.clearSession()
+    }
+
+    if (data) {
       this.setSession({
-        accessToken: result.access_token,
-        refreshToken: result.refresh_token
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token
       })
-    } catch (error) {
-      // If we failed to refresh, then our tokens have expired
-      if (error instanceof AuthError) {
-        this.clearSession()
-      }
-      throw error
     }
 
     logger.debug('refreshed access token')

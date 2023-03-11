@@ -15,6 +15,8 @@ export enum FiresyncErrorCode {
 }
 
 export class FiresyncError extends Error {
+  code: FiresyncErrorCode
+
   constructor(message: string, fsErrorCode: FiresyncErrorCode) {
     if (!message.match(/^\[E\d+\]/)) {
       message = `[E${pad(fsErrorCode)}] ${message} (See ${DOCS_URL(
@@ -23,6 +25,7 @@ export class FiresyncError extends Error {
     }
     super(message)
     this.name = 'FiresyncError'
+    this.code = fsErrorCode
     Object.setPrototypeOf(this, FiresyncError.prototype)
   }
 }

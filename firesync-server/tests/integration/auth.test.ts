@@ -10,15 +10,16 @@ describe('Auth', () => {
     test(
       'client.isLoggedIn() in should return true',
       testWrapper({ connect: false }, async ({ client }) => {
-        expect(await client.isLoggedIn()).to.equal(true)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(true)
       })
     )
 
     test(
       'client.getUser() should return user',
       testWrapper({ connect: false }, async ({ client }) => {
-        const user = await client.getUser()
-        expect(typeof user.userId).to.equal('string')
+        const { data: user } = await client.getUser()
+        expect(typeof user?.userId).to.equal('string')
       })
     )
 
@@ -39,16 +40,19 @@ describe('Auth', () => {
       'client.isLoggedIn() in should return false',
       testWrapper({ connect: false }, async ({ client }) => {
         client.session.clearSession()
-        expect(await client.isLoggedIn()).to.equal(false)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(false)
       })
     )
 
     test(
-      'client.getUser() should throw AuthError',
+      'client.getUser() should return AuthError',
       testWrapper({ connect: false }, async ({ client }) => {
         client.session.clearSession()
-        await expect(client.getUser()).to.be.rejectedWith(
-          AuthError,
+        const { data: user, error } = await client.getUser()
+        expect(user).to.equal(null)
+        expect(error instanceof AuthError).to.equal(true)
+        expect(error?.message).to.match(
           /You are not logged in or your session has expired/
         )
       })
@@ -81,16 +85,19 @@ describe('Auth', () => {
       'client.isLoggedIn() in should return false',
       testWrapper({ connect: false }, async ({ client }) => {
         await client.revokeSession()
-        expect(await client.isLoggedIn()).to.equal(false)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(false)
       })
     )
 
     test(
-      'client.getUser() should throw AuthError',
+      'client.getUser() should return AuthError',
       testWrapper({ connect: false }, async ({ client }) => {
         await client.revokeSession()
-        await expect(client.getUser()).to.be.rejectedWith(
-          AuthError,
+        const { data: user, error } = await client.getUser()
+        expect(user).to.equal(null)
+        expect(error instanceof AuthError).to.equal(true)
+        expect(error?.message).to.match(
           /You are not logged in or your session has expired/
         )
       })
@@ -126,7 +133,8 @@ describe('Auth', () => {
           accessToken: client.session.accessToken,
           refreshToken: client.session.refreshToken
         })
-        expect(await client.isLoggedIn()).to.equal(false)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(false)
       })
     )
 
@@ -137,8 +145,10 @@ describe('Auth', () => {
           accessToken: client.session.accessToken,
           refreshToken: client.session.refreshToken
         })
-        await expect(client.getUser()).to.be.rejectedWith(
-          AuthError,
+        const { data: user, error } = await client.getUser()
+        expect(user).to.equal(null)
+        expect(error instanceof AuthError).to.equal(true)
+        expect(error?.message).to.match(
           /You are not logged in or your session has expired/
         )
       })
@@ -176,7 +186,8 @@ describe('Auth', () => {
         await server.expireTokens({
           accessToken: client.session.accessToken
         })
-        expect(await client.isLoggedIn()).to.equal(true)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(true)
       })
     )
 
@@ -186,8 +197,8 @@ describe('Auth', () => {
         await server.expireTokens({
           accessToken: client.session.accessToken
         })
-        const user = await client.getUser()
-        expect(typeof user.userId).to.equal('string')
+        const { data: user } = await client.getUser()
+        expect(typeof user?.userId).to.equal('string')
       })
     )
 
@@ -213,7 +224,8 @@ describe('Auth', () => {
         await server.expireTokens({
           accessToken: client.session.accessToken
         })
-        expect(await client.isLoggedIn()).to.equal(true)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(true)
         expect(client.session.refreshToken).to.not.equal(oldRefreshToken)
       })
     )
@@ -224,7 +236,8 @@ describe('Auth', () => {
         const previousAccessToken = client.session.accessToken
 
         await client.session.refreshAccessToken()
-        expect(await client.isLoggedIn()).to.equal(true)
+        const { data: loggedInCurrent } = await client.isLoggedIn()
+        expect(loggedInCurrent).to.equal(true)
 
         client.session.setSession({
           accessToken: previousAccessToken,
@@ -232,7 +245,8 @@ describe('Auth', () => {
         })
 
         client.api.autoRefreshAccessToken = false
-        expect(await client.isLoggedIn()).to.equal(false)
+        const { data: loggedInPrevious } = await client.isLoggedIn()
+        expect(loggedInPrevious).to.equal(false)
       })
     )
   })
@@ -246,7 +260,8 @@ describe('Auth', () => {
           revokeRefreshToken: false
         })
         client.api.autoRefreshAccessToken = false
-        expect(await client.isLoggedIn()).to.equal(false)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(false)
       })
     )
 
@@ -257,7 +272,8 @@ describe('Auth', () => {
           revokeAccessToken: false, // Should get revoked anyway with refresh token
           revokeRefreshToken: true
         })
-        expect(await client.isLoggedIn()).to.equal(false)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(false)
       })
     )
 
@@ -291,7 +307,8 @@ describe('Auth', () => {
           accessToken: currentAccessToken,
           refreshToken: currentRefreshToken
         })
-        expect(await client.isLoggedIn()).to.equal(false)
+        const { data: loggedIn } = await client.isLoggedIn()
+        expect(loggedIn).to.equal(false)
       })
     )
   })

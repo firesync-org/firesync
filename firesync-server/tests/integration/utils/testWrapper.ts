@@ -21,9 +21,9 @@ export const testWrapper = function (
   }) => Promise<void>
 ) {
   return async function () {
-    const client = getClient({
-      connect: false // Wait until we have a user and session
-    })
+    const server = new DebugClient(`http://localhost:5000`)
+
+    const client = await server.createUserAndClient()
 
     client.connection.maxConnectionAttemptDelay = 30
     client.connection.minConnectionAttemptDelay = 1
@@ -32,11 +32,6 @@ export const testWrapper = function (
     client.connection.on('error', () => {
       // stop lots of expected errors being logged
     })
-
-    const server = new DebugClient(`http://localhost:5000`, client.session)
-
-    const { accessToken, refreshToken } = await server.createUser()
-    client.session.setSession({ accessToken, refreshToken })
 
     const docKey = uuidv4()
     await client.createDoc(docKey)
@@ -59,7 +54,7 @@ export const testWrapper = function (
     }
 
     const cleanUp = async () => {
-      client.connection.disconnect()
+      server.clients.forEach((client) => client.connection.disconnect())
       server.acceptConnections()
     }
 

@@ -1,32 +1,22 @@
 import { expect } from 'chai'
-import { getClient, testWrapper, tryUntil } from './utils'
-import { DebugClient } from './utils/debugClient'
-
-const newUser = async (server: DebugClient) => {
-  const client = getClient({
-    connect: false // Wait until we have a user and session
-  })
-
-  const { accessToken, refreshToken } = await server.createUser()
-  client.session.setSession({ accessToken, refreshToken })
-
-  return client
-}
+import { testWrapper, tryUntil } from './utils'
+import { ApiRequestError } from '@firesync/client'
 
 describe('Invites', () => {
   describe('Happy Path', () => {
     test(
       'Should create a token that can be redeemed by a new user to the doc',
       testWrapper({}, async ({ client: ownerClient, docKey, server, ydoc }) => {
-        const collaboratorClient = await newUser(server)
+        const collaboratorClient = await server.createUserAndClient()
         collaboratorClient.connection.connect()
 
-        const {
-          invite: { token }
-        } = await ownerClient.createInvite(docKey, {
+        const { data } = await ownerClient.createInvite(docKey, {
           role: 'write',
           email: 'bob@example.com '
         })
+        const {
+          invite: { token }
+        } = data!
 
         await collaboratorClient.redeemInvite(docKey, token)
 
@@ -37,8 +27,6 @@ describe('Invites', () => {
         await tryUntil(async () => {
           expect(ydocB.getText('t').toJSON()).to.equal('foo')
         })
-
-        collaboratorClient.connection.disconnect()
       })
     )
   })
@@ -53,18 +41,17 @@ describe('Invites', () => {
     test(
       'Wrong token returns invalid',
       testWrapper({}, async ({ docKey, server }) => {
-        const collaboratorClient = await newUser(server)
+        const collaboratorClient = await server.createUserAndClient()
         collaboratorClient.connection.connect()
 
-        let error: Error | null = null
-        try {
-          await collaboratorClient.redeemInvite(docKey, 'made-up-token')
-        } catch (_error) {
-          error = _error as Error
-        }
+        const { data, error, invalid } = await collaboratorClient.redeemInvite(
+          docKey,
+          'made-up-token'
+        )
 
-        console.log(error)
-        collaboratorClient.connection.disconnect()
+        expect(invalid).to.equal(true)
+        expect(data).to.equal(null)
+        expect(error).to.be.instanceOf(ApiRequestError)
       })
     )
 
