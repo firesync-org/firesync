@@ -29,9 +29,7 @@ describe('Invites', () => {
   })
 
   describe('Sending Invites', () => {
-    test.todo(
-      'What should it do when sending an invite to an email with an existing invite?'
-    )
+    test.todo('Revoke previous invites sent to same email')
   })
 
   describe('Redeeming Invites', () => {
@@ -121,8 +119,12 @@ describe('Invites', () => {
   })
 
   describe('Revoking access', () => {
-    test.todo('User should no longer have access')
+    test.todo(`Admin should be able to revoke other user's roles`)
 
-    test.todo('Do not remove last admin role')
+    test.todo(`Don't revoke final admin role`)
+
+    test.todo(`Non admin should be able to revoke own role`)
+
+    test.todo(`Non admin shouldn't be able to revoke other users's roles`)
   })
 })
