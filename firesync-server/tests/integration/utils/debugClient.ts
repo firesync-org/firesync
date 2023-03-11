@@ -36,7 +36,7 @@ export class DebugClient {
     return client
   }
 
-  async expireTokens({
+  async expireSessionTokens({
     refreshToken,
     accessToken
   }: {
@@ -49,6 +49,12 @@ export class DebugClient {
         access_token: accessToken,
         refresh_token: refreshToken
       })
+    })
+  }
+
+  async expireInviteToken(token: string) {
+    await this.fetch(`/debug/invites/${token}/expire`, {
+      method: 'POST'
     })
   }
 

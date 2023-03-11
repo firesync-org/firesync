@@ -129,7 +129,7 @@ describe('Auth', () => {
     test(
       'client.isLoggedIn() in should return false',
       testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireTokens({
+        await server.expireSessionTokens({
           accessToken: client.session.accessToken,
           refreshToken: client.session.refreshToken
         })
@@ -141,7 +141,7 @@ describe('Auth', () => {
     test(
       'client.getUser() should throw AuthError',
       testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireTokens({
+        await server.expireSessionTokens({
           accessToken: client.session.accessToken,
           refreshToken: client.session.refreshToken
         })
@@ -157,7 +157,7 @@ describe('Auth', () => {
     test(
       'client.connection.connect() should throw AuthError',
       testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireTokens({
+        await server.expireSessionTokens({
           accessToken: client.session.accessToken,
           refreshToken: client.session.refreshToken
         })
@@ -183,7 +183,7 @@ describe('Auth', () => {
     test(
       'client.isLoggedIn() in should return true',
       testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireTokens({
+        await server.expireSessionTokens({
           accessToken: client.session.accessToken
         })
         const { data: loggedIn } = await client.isLoggedIn()
@@ -194,7 +194,7 @@ describe('Auth', () => {
     test(
       'client.getUser() should return user',
       testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireTokens({
+        await server.expireSessionTokens({
           accessToken: client.session.accessToken
         })
         const { data: user } = await client.getUser()
@@ -205,7 +205,7 @@ describe('Auth', () => {
     test(
       'client.connection.connect() should connect',
       testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireTokens({
+        await server.expireSessionTokens({
           accessToken: client.session.accessToken
         })
 
@@ -221,7 +221,7 @@ describe('Auth', () => {
       'refresh token should get refreshed',
       testWrapper({ connect: false }, async ({ client, server }) => {
         const oldRefreshToken = client.session.refreshToken
-        await server.expireTokens({
+        await server.expireSessionTokens({
           accessToken: client.session.accessToken
         })
         const { data: loggedIn } = await client.isLoggedIn()

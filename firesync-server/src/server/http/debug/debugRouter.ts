@@ -60,6 +60,23 @@ export const debugRouter = () => {
     })
   )
 
+  debugRouter.post(
+    '/invites/:token/expire',
+    requestHandler(async (req, res) => {
+      const token = req.params.token
+      if (typeof token === 'string') {
+        await db
+          .knex('invite_tokens')
+          .update({
+            expires_at: new Date().toISOString()
+          })
+          .where('token', token)
+      }
+
+      res.json({})
+    })
+  )
+
   debugRouter.get(
     '/docs/:docKey/sv',
     requestHandler(async (req, res) => {

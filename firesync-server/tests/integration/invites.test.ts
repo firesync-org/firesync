@@ -42,7 +42,6 @@ describe('Invites', () => {
       'Wrong token returns invalid',
       testWrapper({}, async ({ docKey, server }) => {
         const collaboratorClient = await server.createUserAndClient()
-        collaboratorClient.connection.connect()
 
         const { data, error, invalid } = await collaboratorClient.redeemInvite(
           docKey,
@@ -55,7 +54,31 @@ describe('Invites', () => {
       })
     )
 
-    test.todo('Expired token returns invalid')
+    test(
+      'Expired token returns invalid',
+      testWrapper({}, async ({ client: ownerClient, docKey, server }) => {
+        const collaboratorClient = await server.createUserAndClient()
+
+        const { data: invite } = await ownerClient.createInvite(docKey, {
+          role: 'write',
+          email: 'bob@example.com '
+        })
+        const {
+          invite: { token }
+        } = invite!
+
+        await server.expireInviteToken(token)
+
+        const { data, error, invalid } = await collaboratorClient.redeemInvite(
+          docKey,
+          token
+        )
+
+        expect(invalid).to.equal(true)
+        expect(data).to.equal(null)
+        expect(error).to.be.instanceOf(ApiRequestError)
+      })
+    )
 
     test.todo('User with a lower role gets upgraded')
 
