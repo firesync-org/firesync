@@ -11,6 +11,7 @@ FireSync gives you everything you need to build a real-time collaborative app ou
 * **🧑 User management out of the box**
 * **🔓 Role based permissions**
 * **📧 Email invites to join docs (coming soon)**
+* **👥 Teams, groups and anonymous access for flexible sharing options**
 * **👀 Online indicators, cursors and focus indicators of other users (coming soon)**
 * **🕒 Full browseable history of changes to a doc (coming soon)**
 * **↩️ Rollback to previous versions (coming soon)**
