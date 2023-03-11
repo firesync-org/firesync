@@ -44,14 +44,6 @@ export class DebugClient {
     })
   }
 
-  async createDoc(docKey: string) {
-    const response = await this.fetch(`/api/docs`, {
-      method: 'POST',
-      body: JSON.stringify({ docKey })
-    })
-    return await response.json()
-  }
-
   async getDocUpdates(docKey: string) {
     const response = await this.fetch(`/debug/docs/${docKey}/updates`)
     const data = (await response.json()) as {

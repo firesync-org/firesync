@@ -15,8 +15,11 @@ import { projectsController } from './http/controllers/projects'
 import { config } from '../config'
 import { userController } from './http/controllers/user'
 import { tokenController } from './http/controllers/tokens'
+import { logging } from './lib/Logging/Logger'
 
 export { logging } from './lib/Logging/Logger'
+
+const logger = logging.child('server')
 
 type FiresyncServerOptions = {
   enableDebugRouter?: boolean
@@ -56,6 +59,21 @@ export const FiresyncServer = ({
   app.use(express.json())
 
   app.use(passport.initialize())
+
+  app.use((req, res, next) => {
+    res.on('finish', function () {
+      logger.info(
+        {
+          method: req.method,
+          url: decodeURI(req.originalUrl),
+          statusCode: res.statusCode,
+          statusMessage: res.statusMessage
+        },
+        'http request'
+      )
+    })
+    next()
+  })
 
   app.use(loadProject)
   app.use(setCorsHeadersForProject)

@@ -119,14 +119,16 @@ export default class Firesync {
     docKey: string,
     { role = 'read', email }: { role?: Role; email?: string } = {}
   ) {
-    return await this.api.requestWithAccessToken(
-      'api/docs/invites',
-      this.session,
-      {
-        method: 'POST',
-        body: JSON.stringify({ docKey, role, email })
+    return await this.api.requestWithAccessToken<{
+      invite: {
+        token: string
+        role: Role
+        expiresAt: string
       }
-    )
+    }>('api/docs/invites', this.session, {
+      method: 'POST',
+      body: JSON.stringify({ docKey, role, email })
+    })
   }
 
   async redeemInvite(docKey: string, token: string) {

@@ -39,7 +39,7 @@ export const testWrapper = function (
     client.session.setSession({ accessToken, refreshToken })
 
     const docKey = uuidv4()
-    await server.createDoc(docKey)
+    await client.createDoc(docKey)
     const ydoc = new Y.Doc()
 
     if (connect) {

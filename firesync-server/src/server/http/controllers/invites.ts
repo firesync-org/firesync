@@ -72,7 +72,6 @@ export const invitesController = {
     return res.status(201).json({
       invite: {
         token,
-        docId,
         role,
         expiresAt: expiresAt.toISOString()
       }
@@ -90,14 +89,8 @@ export const invitesController = {
     const project = req.firesync.project
     const docId = await getDocIdWithoutAuth(project, docKey)
 
-    // TODO: If invite has already been redeemed for this user, just treat it as a success
-    // so they can re-use links from invite emails, etc
-    // TODO: If the invite has expired and has an email to send it to, allow a new invite to
-    // be sent to the same email
     // TODO: If the user already has a role for the doc, increase it if the invite is better
     // or just flow through to invite_success_redirect_url if not
-
-    // TODO: Handle user already having a role in this doc
 
     const invite = await db
       .knex('invite_tokens')

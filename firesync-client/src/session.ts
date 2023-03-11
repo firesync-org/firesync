@@ -34,18 +34,17 @@ export class SessionMemoryStorage implements StorageInterface {
   }
 }
 
-const defaultStorage =
-  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
-    ? window.localStorage
-    : new SessionMemoryStorage()
-
 export class Session {
   api: Api
   storage: StorageInterface
 
-  constructor(api: Api, storage = defaultStorage) {
+  constructor(api: Api) {
     this.api = api
-    this.storage = storage
+    this.storage =
+      typeof window !== 'undefined' &&
+      typeof window.localStorage !== 'undefined'
+        ? window.localStorage
+        : new SessionMemoryStorage()
     this.loadSessionFromUrl()
   }
 

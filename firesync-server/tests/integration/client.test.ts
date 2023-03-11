@@ -308,44 +308,37 @@ describe('Client', () => {
   describe('multiple docs', () => {
     test(
       'subscribing to a new doc when already connected to an old doc',
-      testWrapper(
-        {},
-        async ({
-          ydoc: ydoc1a,
-          docKey: docKey1,
-          client: { connection: connectionA, session },
-          server
-        }) => {
-          const docKey2 = uuidv4()
-          await server.createDoc(docKey2)
-          const ydoc2a = connectionA.subscribe(docKey2)
+      testWrapper({}, async ({ ydoc: ydoc1a, docKey: docKey1, client }) => {
+        const { connection: connectionA, session } = client
+        const docKey2 = uuidv4()
+        await client.createDoc(docKey2)
+        const ydoc2a = connectionA.subscribe(docKey2)
 
-          // Wait till subscribed
-          await tryUntil(async () => {
-            expect(connectionA.isSubscribed(docKey1)).to.equal(true)
-            expect(connectionA.isSubscribed(docKey2)).to.equal(true)
-          })
+        // Wait till subscribed
+        await tryUntil(async () => {
+          expect(connectionA.isSubscribed(docKey1)).to.equal(true)
+          expect(connectionA.isSubscribed(docKey2)).to.equal(true)
+        })
 
-          ydoc1a.getText('').insert(0, 'foo')
-          ydoc2a.getText('').insert(0, 'bar')
+        ydoc1a.getText('').insert(0, 'foo')
+        ydoc2a.getText('').insert(0, 'bar')
 
-          // Should sync to other connection subscribed to both docs
-          const ydoc1b = new Y.Doc()
-          const ydoc2b = new Y.Doc()
-          const { connection: connectionB } = getClient({
-            session
-          })
-          connectionB.subscribe(docKey1, ydoc1b)
-          connectionB.subscribe(docKey2, ydoc2b)
+        // Should sync to other connection subscribed to both docs
+        const ydoc1b = new Y.Doc()
+        const ydoc2b = new Y.Doc()
+        const { connection: connectionB } = getClient({
+          session
+        })
+        connectionB.subscribe(docKey1, ydoc1b)
+        connectionB.subscribe(docKey2, ydoc2b)
 
-          await tryUntil(async () => {
-            expect(ydoc1b.getText('').toJSON()).to.equal('foo')
-            expect(ydoc2b.getText('').toJSON()).to.equal('bar')
-          })
+        await tryUntil(async () => {
+          expect(ydoc1b.getText('').toJSON()).to.equal('foo')
+          expect(ydoc2b.getText('').toJSON()).to.equal('bar')
+        })
 
-          connectionB.disconnect()
-        }
-      )
+        connectionB.disconnect()
+      })
     )
 
     test(
@@ -354,15 +347,11 @@ describe('Client', () => {
         {
           connect: false
         },
-        async ({
-          ydoc: ydoc1a,
-          docKey: docKey1,
-          client: { connection: connectionA, session },
-          server
-        }) => {
+        async ({ ydoc: ydoc1a, docKey: docKey1, client }) => {
+          const { connection: connectionA, session } = client
           const docKey2 = uuidv4()
           const ydoc2a = new Y.Doc()
-          await server.createDoc(docKey2)
+          await client.createDoc(docKey2)
 
           connectionA.subscribe(docKey1, ydoc1a)
           connectionA.subscribe(docKey2, ydoc2a)
