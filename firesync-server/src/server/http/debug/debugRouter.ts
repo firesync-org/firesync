@@ -8,7 +8,6 @@ import { webSockets } from '../../ws/WebSockets'
 import { tokens } from '../../models/tokens'
 import { BadRequestHttpError } from '../helpers/errors'
 import models from '../../../server/models'
-import { getDocKeyFromRequest } from '../helpers/docs'
 import { isRole } from '../../../shared/roles'
 
 export const debugRouter = () => {

@@ -22,16 +22,16 @@ export class PendingInvite {
   }
 
   ignore() {
-    PendingInvite.clearLocalStorage()
+    PendingInvite.clearSessionStorage()
     this.firesync.pendingInvite = undefined
   }
 
   static load(firesync: Firesync) {
     let invite = this.getInviteFromUrl()
     if (invite) {
-      this.saveInviteToLocalStorage(invite)
+      this.saveInviteToSessionStorage(invite)
     } else {
-      invite = this.getInviteFromLocalStorage()
+      invite = this.getInviteFromSessionStorage()
     }
 
     if (invite) {
@@ -58,11 +58,11 @@ export class PendingInvite {
     }
   }
 
-  private static getInviteFromLocalStorage(): Invite | undefined {
+  private static getInviteFromSessionStorage(): Invite | undefined {
     if (typeof window === 'undefined') {
       return
     }
-    const storage = window.localStorage
+    const storage = window.sessionStorage
 
     const invite = storage.getItem(INVITE_KEY)
     if (invite) {
@@ -73,18 +73,18 @@ export class PendingInvite {
     }
   }
 
-  private static saveInviteToLocalStorage(invite: Invite) {
+  private static saveInviteToSessionStorage(invite: Invite) {
     if (typeof window === 'undefined') {
       return
     }
-    const storage = window.localStorage
+    const storage = window.sessionStorage
     storage.setItem(INVITE_KEY, JSON.stringify(invite))
   }
 
-  private static clearLocalStorage() {
+  private static clearSessionStorage() {
     if (typeof window === 'undefined') {
       return
     }
-    window.localStorage.removeItem(INVITE_KEY)
+    window.sessionStorage.removeItem(INVITE_KEY)
   }
 }
