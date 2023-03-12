@@ -10,7 +10,6 @@ import { webSockets } from './ws/WebSockets'
 import { Server } from 'net'
 import { debugRouter } from './http/debug/debugRouter'
 import { invitesController } from './http/controllers/invites'
-import { projectsController } from './http/controllers/projects'
 import { config } from '../config'
 import { userController } from './http/controllers/user'
 import { tokenController } from './http/controllers/tokens'
@@ -81,7 +80,7 @@ export const FiresyncServer = ({
     res.status(200).send()
   })
 
-  app.get('/', projectsController.status)
+  app.get('/', (req, res) => res.render('index'))
 
   app.get('/user', userController.getUser)
 

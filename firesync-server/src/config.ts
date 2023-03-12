@@ -1,3 +1,6 @@
+import { db } from './db/db'
+import { UnexpectedInternalStateError } from './shared/errors'
+
 if (
   process.env.POSTGRES_DATABASE === undefined ||
   process.env.POSTGRES_USER === undefined ||
@@ -24,4 +27,19 @@ export const config = {
   TRUST_PROXY: process.env.TRUST_PROXY === 'true',
   HOST: process.env.HOST || 'localhost',
   PORT: parseInt(process.env.PORT || '5000')
+}
+
+export const getProjectConfig = async (projectId: string) => {
+  const configValues = await db
+    .knex('projects')
+    .select('cors_allowed_origins', 'redeem_invite_url')
+    .where('id', projectId)
+    .first()
+  if (configValues === undefined) {
+    throw new UnexpectedInternalStateError('Expected project to exist')
+  }
+  return {
+    corsAllowedOrigins: configValues.cors_allowed_origins,
+    redeemInviteUrl: configValues.redeem_invite_url
+  }
 }

@@ -15,10 +15,10 @@ import {
   ProjectUserAuthProvider,
   db
 } from '../../../../db/db'
-import { config } from '../../../../config'
 import { UnexpectedInternalStateError } from '../../../../shared/errors'
 import { tokens } from '../../../models/tokens'
 import models from '../../../../server/models'
+import { getHostName } from '../../helpers/host'
 
 type RequestWithAuthCredentials = Request & {
   authCredentials: Pick<
@@ -35,8 +35,7 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
     >
 
     const project = await models.projects.getProjectFromRequest(req)
-    const projectName = project.name
-    const strategyName = `google:${projectName}`
+    const strategyName = `google:${project.id}`
 
     const authCredentials = await db
       .knex('auth_provider_google')
@@ -50,27 +49,18 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
       .first()
 
     if (authCredentials === undefined) {
-      return res
-        .status(404)
-        .render('projects/noGoogleAuth', { projectName: project.name })
+      return res.status(404).render('projects/noGoogleAuth')
     }
 
     const reqWithAuthCreds = req as RequestWithAuthCredentials
     reqWithAuthCreds.authCredentials = authCredentials
 
-    let host = project.host
-    if (!config.TRUST_PROXY && config.PORT !== 80) {
-      // If we're not running behind a proxy, and not on the deafult http port,
-      // then we're probably in dev, and the project is available at
-      // <project.host>:5000, which the callback URL should reflect
-      host = `${project.host}:${config.PORT}`
-    }
-
+    const hostName = getHostName(req)
     strategies[strategyName] = new GoogleStrategy(
       {
         clientID: authCredentials.client_id,
         clientSecret: authCredentials.client_secret,
-        callbackURL: `//${host}/auth/google/callback`
+        callbackURL: `//${hostName}/auth/google/callback`
       },
       loadGoogleUser(project.id)
     )

@@ -114,7 +114,6 @@ export class WebSocketTransports {
       project = await projects.getProjectFromRequest(request)
       userId = await auth.getUserIdFromRequest(request)
     } catch (error) {
-      console.log('error', error)
       if (error instanceof HttpError) {
         socket.write(
           `HTTP/1.1 ${error.httpStatusCode} ${error.meaning}\r\n\r\n`
@@ -127,7 +126,7 @@ export class WebSocketTransports {
     }
     const projectId = project.id
 
-    logger.debug({ projectId, projectName: project.name }, 'onUpgrade')
+    logger.info({ projectId }, 'websocket connected')
 
     this.wss.handleUpgrade(request, socket, head, (ws) => {
       this.initializeConnection(ws, userId, projectId)

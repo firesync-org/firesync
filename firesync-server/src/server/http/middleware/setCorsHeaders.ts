@@ -1,12 +1,15 @@
 import cors from 'cors'
 import { requestHandler } from '../helpers/requestHandler'
 import models from '../../../server/models'
+import { getProjectConfig } from '../../../config'
 
 export const setCorsHeadersForProject = requestHandler(
   async (req, res, next) => {
     const project = await models.projects.getProjectFromRequest(req)
-    const originsRaw = project.cors_allowed_origins || ''
-    const origins = originsRaw.split('\n').map(simplePatternToRegex)
+    const { corsAllowedOrigins } = await getProjectConfig(project.id)
+    const origins = (corsAllowedOrigins || '')
+      .split('\n')
+      .map(simplePatternToRegex)
     return cors({
       origin: origins,
       credentials: true,

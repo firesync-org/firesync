@@ -12,6 +12,7 @@ import {
 } from '../../../shared/errors'
 import { logging } from '../../lib/Logging/Logger'
 import models from '../../../server/models'
+import { config, getProjectConfig } from '../../../config'
 
 const logger = logging.child('invites')
 
@@ -33,10 +34,9 @@ export const invitesController = {
       throw new BadRequestHttpError(`Expected email to be a string`)
     }
 
-    if (!project.redeem_invite_url) {
-      throw new BadRequestHttpError(
-        'Project has no redeem_invite_url configured'
-      )
+    let { redeemInviteUrl } = await getProjectConfig(project.id)
+    if (redeemInviteUrl === undefined) {
+      redeemInviteUrl = 'http://todo-help-pages.example.com'
     }
 
     const docId = await models.docs.getDocId(project.id, docKey, userId, [
@@ -58,12 +58,11 @@ export const invitesController = {
     // TODO: Revoke old invite tokens for the same email address
 
     // TODO: Include expiry date in here for quick client side checking of validity
-    const url = `${project.redeem_invite_url}#${querystring.stringify({
+    const url = `${redeemInviteUrl}#${querystring.stringify({
       token,
       doc_key: docKey,
       firesync_flow: 'redeem_invite'
     })}`
-    console.log('pretending to send email', url)
     logger.debug({ role, email, url: url.replace(token, '***') }, 'sent invite')
 
     await db.knex('invite_tokens').insert({

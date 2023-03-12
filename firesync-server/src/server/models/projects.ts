@@ -1,35 +1,16 @@
 import { db } from '../../db/db'
-import { BadRequestHttpError, NotFoundHttpError } from '../http/helpers/errors'
-import { config } from '../../config'
+import { NotFoundHttpError } from '../http/helpers/errors'
 import { IncomingMessage } from 'http'
+import { getHostName } from '../http/helpers/host'
 
 export const projects = {
   async getProjectFromRequest(req: IncomingMessage) {
-    let hostName = req.headers.host
-
-    if (config.TRUST_PROXY) {
-      const forwardedHost = req.headers['x-forwarded-host']
-      if (typeof forwardedHost === 'string') {
-        hostName = forwardedHost
-      }
-    }
-
-    if (hostName === undefined) {
-      throw new BadRequestHttpError('No host header provided')
-    }
+    const hostName = getHostName(req)
     const host = hostName.split(':')[0] // Strip port
 
     const project = await db
       .knex('projects')
-      .select(
-        'id',
-        'name',
-        'cors_allowed_origins',
-        'invite_success_redirect_url',
-        'invite_failure_redirect_url',
-        'redeem_invite_url',
-        'host'
-      )
+      .select('id')
       .where('host', host)
       .first()
 
