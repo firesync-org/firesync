@@ -16,7 +16,14 @@ export default function DocsList() {
   const [newDocKey, setNewDocKey] = useState('')
 
   useEffect(() => {
-    firesync.getUserRoles().then(({ user: { roles } }) => setDocRoles(roles))
+    firesync.getUserRoles().then(({ data }) => {
+      if (data) {
+        const {
+          user: { roles }
+        } = data
+        setDocRoles(roles)
+      }
+    })
   }, [])
 
   const createDoc = (docKey: string) => {
@@ -24,7 +31,14 @@ export default function DocsList() {
       .createDoc(docKey)
       .then(() => setNewDocKey(''))
       .then(() => firesync.getUserRoles())
-      .then(({ user: { roles } }) => setDocRoles(roles))
+      .then(({ data }) => {
+        if (data) {
+          const {
+            user: { roles }
+          } = data
+          setDocRoles(roles)
+        }
+      })
   }
 
   return (

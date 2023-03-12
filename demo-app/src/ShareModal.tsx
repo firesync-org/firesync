@@ -19,9 +19,14 @@ export function ShareModal(props: ShareModalProps) {
   const [docRoles, setDocRoles] = useState<DocRole[]>([])
 
   useEffect(() => {
-    firesync
-      .getDocRoles(docKey)
-      .then(({ doc: { roles } }) => setDocRoles(roles))
+    firesync.getDocRoles(docKey).then(({ data }) => {
+      if (data) {
+        const {
+          doc: { roles }
+        } = data
+        setDocRoles(roles)
+      }
+    })
   }, [])
 
   const share = async () => {
