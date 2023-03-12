@@ -6,7 +6,6 @@ import {
   VerifyCallback
 } from 'passport-google-oauth20'
 import querystring from 'node:querystring'
-import { Request } from 'express'
 
 import { requestHandler } from '../../helpers/requestHandler'
 import { ProjectUser, ProjectUserAuthProvider, db } from '../../../../db/db'
@@ -14,13 +13,7 @@ import { UnexpectedInternalStateError } from '../../../../shared/errors'
 import { tokens } from '../../../models/tokens'
 import models from '../../../../server/models'
 import { getHostName } from '../../helpers/host'
-import { getGoogleAuthConfig } from '../../../../config'
-
-type RequestWithAuthCredentials = Request & {
-  authCredentials: {
-    successRedirectUrl: string | undefined
-  }
-}
+import { getProjectConfig } from '../../../../config'
 
 const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
   return requestHandler(async (req, res, next) => {
@@ -32,16 +25,12 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
     const project = await models.projects.getProjectFromRequest(req)
     const strategyName = `google:${project.id}`
 
-    const { clientId, clientSecret, successRedirectUrl } =
-      await getGoogleAuthConfig(project.id)
+    const {
+      googleAuth: { clientId, clientSecret }
+    } = await getProjectConfig(project.id)
 
     if (clientId === undefined || clientSecret === undefined) {
-      return res.status(404).render('projects/noGoogleAuth')
-    }
-
-    const reqWithAuthCreds = req as RequestWithAuthCredentials
-    reqWithAuthCreds.authCredentials = {
-      successRedirectUrl
+      return res.redirect('/setup/google_auth')
     }
 
     const hostName = getHostName(req)
@@ -113,7 +102,11 @@ export const googleAuthController = {
 
   callback: [
     loadGoogleStrategyForProject({ failureRedirect: '/login', session: false }),
-    requestHandler<RequestWithAuthCredentials>(async (req, res) => {
+    requestHandler(async (req, res) => {
+      const project = await models.projects.getProjectFromRequest(req)
+      const {
+        googleAuth: { successRedirectUrl }
+      } = await getProjectConfig(project.id)
       const userId = req.user?.userId
       if (userId === undefined) {
         throw new UnexpectedInternalStateError('Expected userId')
@@ -122,21 +115,14 @@ export const googleAuthController = {
       const { refreshToken, accessToken, expiresInSeconds } =
         await tokens.generateTokens(userId)
 
-      if (
-        req.authCredentials.successRedirectUrl &&
-        req.authCredentials.successRedirectUrl !== ''
-      ) {
-        res.redirect(
-          `${req.authCredentials.successRedirectUrl}#${querystring.stringify({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-            expires_in: expiresInSeconds,
-            token_type: 'bearer'
-          })}`
-        )
-      } else {
-        res.render('projects/noGoogleSuccessRedirectUrl')
-      }
+      res.redirect(
+        `${successRedirectUrl}#${querystring.stringify({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: expiresInSeconds,
+          token_type: 'bearer'
+        })}`
+      )
     })
   ]
 }

@@ -1,6 +1,3 @@
-import { AuthProviderGoogle, db } from './db/db'
-import { UnexpectedInternalStateError } from './shared/errors'
-
 export const config = {
   postgres: {
     database: process.env.FS_POSTGRES_DATABASE || 'firesync',
@@ -23,39 +20,19 @@ export const config = {
   port: parseInt(process.env.FS_PORT || '5000')
 }
 
-export const getProjectConfig = async (projectId: string) => {
-  const configValues = await db
-    .knex('projects')
-    .select('cors_allowed_origins', 'redeem_invite_url')
-    .where('id', projectId)
-    .first()
-  if (configValues === undefined) {
-    throw new UnexpectedInternalStateError('Expected project to exist')
-  }
+export const getProjectConfig = async (_projectId: string) => {
+  // TODO: Leave as async function with projectId argument so these
+  // can be loaded from the database if needed
   return {
-    corsAllowedOrigins: configValues.cors_allowed_origins,
-    redeemInviteUrl: configValues.redeem_invite_url
-  }
-}
-
-export const getGoogleAuthConfig = async (projectId: string) => {
-  type GoogleAuthConfig = Partial<
-    Pick<
-      AuthProviderGoogle,
-      'client_id' | 'client_secret' | 'success_redirect_url'
-    >
-  >
-  let googleAuthConfig: GoogleAuthConfig | undefined = await db
-    .knex('auth_provider_google')
-    .select('client_id', 'client_secret', 'success_redirect_url')
-    .where('project_id', projectId)
-    .first()
-  if (googleAuthConfig === undefined) {
-    googleAuthConfig = {}
-  }
-  return {
-    clientId: googleAuthConfig.client_id,
-    clientSecret: googleAuthConfig.client_secret,
-    successRedirectUrl: googleAuthConfig.success_redirect_url
+    corsAllowedOrigins: process.env.FS_CORS_ALLOWED_ORIGINS || '*',
+    redeemInviteUrl:
+      process.env.FS_REDEEM_INVITE_URL || '/setup/redeem_invite_url',
+    googleAuth: {
+      clientId: process.env.FS_GOOGLE_AUTH_CLIENT_ID,
+      clientSecret: process.env.FS_GOOGLE_AUTH_CLIENT_SECRET,
+      successRedirectUrl:
+        process.env.FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL ||
+        '/setup/google_auth_success_redirect_url'
+    }
   }
 }

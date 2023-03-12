@@ -34,10 +34,7 @@ export const invitesController = {
       throw new BadRequestHttpError(`Expected email to be a string`)
     }
 
-    let { redeemInviteUrl } = await getProjectConfig(project.id)
-    if (redeemInviteUrl === undefined) {
-      redeemInviteUrl = 'http://todo-help-pages.example.com'
-    }
+    const { redeemInviteUrl } = await getProjectConfig(project.id)
 
     const docId = await models.docs.getDocId(project.id, docKey, userId, [
       'admin'

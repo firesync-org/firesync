@@ -82,6 +82,14 @@ export const FiresyncServer = ({
 
   app.get('/', (req, res) => res.render('index'))
 
+  app.get('/setup/google_auth', (req, res) => res.render('setup/googleAuth'))
+  app.get('/setup/google_auth_success_redirect_url', (req, res) =>
+    res.render('setup/googleAuthSuccessRedirectUrl')
+  )
+  app.get('/setup/redeem_invite_url', (req, res) =>
+    res.render('setup/redeemInviteUrl')
+  )
+
   app.get('/user', userController.getUser)
 
   app.post('/auth/tokens', tokenController.refreshAccessToken)
