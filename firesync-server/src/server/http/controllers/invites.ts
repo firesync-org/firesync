@@ -17,7 +17,7 @@ const logger = logging.child('invites')
 
 export const invitesController = {
   createInvite: requestHandler(async (req, res) => {
-    const project = req.firesync.project
+    const project = await models.projects.getProjectFromRequest(req)
     const userId = await models.tokens.getUserIdFromRequest(req)
     const docKey = getDocKeyFromRequest(req)
 
@@ -39,7 +39,9 @@ export const invitesController = {
       )
     }
 
-    const docId = await models.docs.getDocId(project, docKey, userId, ['admin'])
+    const docId = await models.docs.getDocId(project.id, docKey, userId, [
+      'admin'
+    ])
 
     // Expire in 7 days time
     const now = new Date()
@@ -90,8 +92,8 @@ export const invitesController = {
       throw new UnexpectedInternalStateError(`Expected token from params`)
     }
 
-    const project = req.firesync.project
-    const docId = await models.docs.getDocIdWithoutAuth(project, docKey)
+    const project = await models.projects.getProjectFromRequest(req)
+    const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
 
     // TODO: If the user already has a role for the doc, increase it if the invite is better
     // or just flow through to invite_success_redirect_url if not

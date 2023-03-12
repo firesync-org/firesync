@@ -8,13 +8,13 @@ export const rolesController = {
   listDocRoles: requestHandler(async (req, res) => {
     const docKey = getDocKeyFromRequest(req)
     const userId = await tokens.getUserIdFromRequest(req)
+    const project = await models.projects.getProjectFromRequest(req)
 
-    const docId = await models.docs.getDocId(
-      req.firesync.project,
-      docKey,
-      userId,
-      ['admin', 'read', 'write']
-    )
+    const docId = await models.docs.getDocId(project.id, docKey, userId, [
+      'admin',
+      'read',
+      'write'
+    ])
 
     const docRoles = await db
       .knex('doc_roles')

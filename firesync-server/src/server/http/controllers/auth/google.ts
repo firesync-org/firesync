@@ -6,11 +6,9 @@ import {
   VerifyCallback
 } from 'passport-google-oauth20'
 import querystring from 'node:querystring'
+import { Request } from 'express'
 
-import {
-  RequestWithProject,
-  requestHandler
-} from '../../helpers/requestHandler'
+import { requestHandler } from '../../helpers/requestHandler'
 import {
   AuthProviderGoogle,
   ProjectUser,
@@ -20,8 +18,9 @@ import {
 import { config } from '../../../../config'
 import { UnexpectedInternalStateError } from '../../../../shared/errors'
 import { tokens } from '../../../models/tokens'
+import models from '../../../../server/models'
 
-type RequestWithAuthCredentials = RequestWithProject & {
+type RequestWithAuthCredentials = Request & {
   authCredentials: Pick<
     AuthProviderGoogle,
     'project_id' | 'client_id' | 'client_secret' | 'success_redirect_url'
@@ -35,8 +34,8 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
       passport.Strategy
     >
 
-    const project = req.firesync.project
-    const projectName = req.firesync.project.name
+    const project = await models.projects.getProjectFromRequest(req)
+    const projectName = project.name
     const strategyName = `google:${projectName}`
 
     const authCredentials = await db
@@ -157,9 +156,7 @@ export const googleAuthController = {
           })}`
         )
       } else {
-        res.render('projects/noGoogleSuccessRedirectUrl', {
-          projectName: req.firesync.project.name
-        })
+        res.render('projects/noGoogleSuccessRedirectUrl')
       }
     })
   ]

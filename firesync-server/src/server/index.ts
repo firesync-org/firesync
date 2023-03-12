@@ -4,7 +4,6 @@ import path from 'path'
 import { rolesController } from './http/controllers/roles'
 import { googleAuthController } from './http/controllers/auth/google'
 import passport from 'passport'
-import { loadProject } from './http/middleware/loadProject'
 import { setCorsHeadersForProject } from './http/middleware/setCorsHeaders'
 import { docsController } from './http/controllers/docs'
 import { webSockets } from './ws/WebSockets'
@@ -76,7 +75,6 @@ export const FiresyncServer = ({
     next()
   })
 
-  app.use(loadProject)
   app.use(setCorsHeadersForProject)
 
   app.get('/status', (req, res) => {

@@ -17,11 +17,11 @@ export const debugRouter = () => {
   debugRouter.post(
     '/user',
     requestHandler(async (req, res) => {
-      const projectId = req.firesync.project.id
+      const project = await models.projects.getProjectFromRequest(req)
 
       const [newProjectUser] = await db
         .knex('project_users')
-        .insert({ project_id: projectId }, ['id'])
+        .insert({ project_id: project.id }, ['id'])
 
       if (newProjectUser === undefined) {
         throw new UnexpectedInternalStateError('user not created')
@@ -83,11 +83,9 @@ export const debugRouter = () => {
   debugRouter.post(
     '/docs/:docKey/roles',
     requestHandler(async (req, res) => {
+      const project = await models.projects.getProjectFromRequest(req)
       const docKey = req.params.docKey!
-      const docId = await models.docs.getDocIdWithoutAuth(
-        req.firesync.project,
-        docKey
-      )
+      const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
 
       const userId = req.body.userId
       if (typeof userId !== 'string') {
@@ -108,11 +106,9 @@ export const debugRouter = () => {
   debugRouter.get(
     '/docs/:docKey/sv',
     requestHandler(async (req, res) => {
+      const project = await models.projects.getProjectFromRequest(req)
       const docKey = req.params.docKey!
-      const docId = await models.docs.getDocIdWithoutAuth(
-        req.firesync.project,
-        docKey
-      )
+      const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
 
       const stateVector = await docStore.getStateVector(docId)
       res.json({
@@ -124,11 +120,9 @@ export const debugRouter = () => {
   debugRouter.get(
     '/docs/:docKey/updates',
     requestHandler(async (req, res) => {
+      const project = await models.projects.getProjectFromRequest(req)
       const docKey = req.params.docKey!
-      const docId = await models.docs.getDocIdWithoutAuth(
-        req.firesync.project,
-        docKey
-      )
+      const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
 
       res.json({
         updates: (await storage.getUpdates(docId)).map((buffer) =>
@@ -147,11 +141,9 @@ export const debugRouter = () => {
   debugRouter.post(
     '/docs/:docKey/connections/terminate',
     requestHandler(async (req, res) => {
+      const project = await models.projects.getProjectFromRequest(req)
       const docKey = req.params.docKey!
-      const docId = await models.docs.getDocIdWithoutAuth(
-        req.firesync.project,
-        docKey
-      )
+      const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
 
       await webSockets.terminateDocConnections(docId)
       res.send('OK')
