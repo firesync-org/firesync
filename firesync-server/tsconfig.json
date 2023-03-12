@@ -4,7 +4,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "target": "es2019",
-    "baseUrl": ".",
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "declaration": true,

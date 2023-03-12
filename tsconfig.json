@@ -3,7 +3,6 @@
     "module": "esnext",
     "moduleResolution": "node",
     "target": "es5",
-    "baseUrl": ".",
     "paths": {
       "@firesync/client": ["firesync-client/"]
     },
