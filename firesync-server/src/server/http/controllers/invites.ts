@@ -12,7 +12,7 @@ import {
 } from '../../../shared/errors'
 import { logging } from '../../lib/Logging/Logger'
 import models from '../../../server/models'
-import { config, getProjectConfig } from '../../../config'
+import { getProjectConfig } from '../../../config'
 
 const logger = logging.child('invites')
 

@@ -1,4 +1,4 @@
-import { db } from './db/db'
+import { AuthProviderGoogle, db } from './db/db'
 import { UnexpectedInternalStateError } from './shared/errors'
 
 if (
@@ -41,5 +41,27 @@ export const getProjectConfig = async (projectId: string) => {
   return {
     corsAllowedOrigins: configValues.cors_allowed_origins,
     redeemInviteUrl: configValues.redeem_invite_url
+  }
+}
+
+export const getGoogleAuthConfig = async (projectId: string) => {
+  type GoogleAuthConfig = Partial<
+    Pick<
+      AuthProviderGoogle,
+      'client_id' | 'client_secret' | 'success_redirect_url'
+    >
+  >
+  let googleAuthConfig: GoogleAuthConfig | undefined = await db
+    .knex('auth_provider_google')
+    .select('client_id', 'client_secret', 'success_redirect_url')
+    .where('project_id', projectId)
+    .first()
+  if (googleAuthConfig === undefined) {
+    googleAuthConfig = {}
+  }
+  return {
+    clientId: googleAuthConfig.client_id,
+    clientSecret: googleAuthConfig.client_secret,
+    successRedirectUrl: googleAuthConfig.success_redirect_url
   }
 }

@@ -9,22 +9,17 @@ import querystring from 'node:querystring'
 import { Request } from 'express'
 
 import { requestHandler } from '../../helpers/requestHandler'
-import {
-  AuthProviderGoogle,
-  ProjectUser,
-  ProjectUserAuthProvider,
-  db
-} from '../../../../db/db'
+import { ProjectUser, ProjectUserAuthProvider, db } from '../../../../db/db'
 import { UnexpectedInternalStateError } from '../../../../shared/errors'
 import { tokens } from '../../../models/tokens'
 import models from '../../../../server/models'
 import { getHostName } from '../../helpers/host'
+import { getGoogleAuthConfig } from '../../../../config'
 
 type RequestWithAuthCredentials = Request & {
-  authCredentials: Pick<
-    AuthProviderGoogle,
-    'project_id' | 'client_id' | 'client_secret' | 'success_redirect_url'
-  >
+  authCredentials: {
+    successRedirectUrl: string | undefined
+  }
 }
 
 const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
@@ -37,29 +32,23 @@ const loadGoogleStrategyForProject = (options: AuthenticateOptionsGoogle) => {
     const project = await models.projects.getProjectFromRequest(req)
     const strategyName = `google:${project.id}`
 
-    const authCredentials = await db
-      .knex('auth_provider_google')
-      .select(
-        'project_id',
-        'client_id',
-        'client_secret',
-        'success_redirect_url'
-      )
-      .where('project_id', project.id)
-      .first()
+    const { clientId, clientSecret, successRedirectUrl } =
+      await getGoogleAuthConfig(project.id)
 
-    if (authCredentials === undefined) {
+    if (clientId === undefined || clientSecret === undefined) {
       return res.status(404).render('projects/noGoogleAuth')
     }
 
     const reqWithAuthCreds = req as RequestWithAuthCredentials
-    reqWithAuthCreds.authCredentials = authCredentials
+    reqWithAuthCreds.authCredentials = {
+      successRedirectUrl
+    }
 
     const hostName = getHostName(req)
     strategies[strategyName] = new GoogleStrategy(
       {
-        clientID: authCredentials.client_id,
-        clientSecret: authCredentials.client_secret,
+        clientID: clientId,
+        clientSecret,
         callbackURL: `//${hostName}/auth/google/callback`
       },
       loadGoogleUser(project.id)
@@ -134,11 +123,11 @@ export const googleAuthController = {
         await tokens.generateTokens(userId)
 
       if (
-        req.authCredentials.success_redirect_url &&
-        req.authCredentials.success_redirect_url !== ''
+        req.authCredentials.successRedirectUrl &&
+        req.authCredentials.successRedirectUrl !== ''
       ) {
         res.redirect(
-          `${req.authCredentials.success_redirect_url}#${querystring.stringify({
+          `${req.authCredentials.successRedirectUrl}#${querystring.stringify({
             access_token: accessToken,
             refresh_token: refreshToken,
             expires_in: expiresInSeconds,
