@@ -39,8 +39,8 @@ export default class Server extends Command {
     const port = flags.port
     const enableDebugRouter = flags['debug-router']
 
-    config.PORT = port
-    config.HOST = host
+    config.port = port
+    config.host = host
 
     const server = FiresyncServer({
       enableDebugRouter

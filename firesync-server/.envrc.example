@@ -1,11 +1,8 @@
-export POSTGRES_PASSWORD=postgres
-export POSTGRES_USER=postgres
-export POSTGRES_HOST=localhost
-export POSTGRES_DATABASE=firesync
-export POSTGRES_PORT=5432
-
-# Set a random session secret
-# export SESSION_SECRET=
+export FS_POSTGRES_PASSWORD=postgres
+export FS_POSTGRES_USER=postgres
+export FS_POSTGRES_HOST=localhost
+export FS_POSTGRES_DATABASE=firesync
+export FS_POSTGRES_PORT=5432
 
 # Set if running behind a proxy, e.g. Caddy to serve SSL
-# export TRUST_PROXY=true
+# export FS_TRUST_PROXY=true

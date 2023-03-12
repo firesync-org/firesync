@@ -50,7 +50,7 @@ export const FiresyncServer = ({
   app.use(expressLayouts)
   app.set('views', path.join(__dirname, '../../views'))
 
-  if (config.TRUST_PROXY) {
+  if (config.trustProxy) {
     // Needed for secure: true in cookie
     app.set('trust proxy', 1)
   }

@@ -1,5 +1,7 @@
 # Configuration
 
+**TODO: UPDATE ME**
+
 `@firesync/server` is configured by setting environment variables, for example:
 
 ```sh
