@@ -84,9 +84,9 @@ The URL in your app to redirect to after a user has accepted an invite to join o
 
 To enable users to log in to your FireSync project with Google, you will need to configure some [Google OAuth 2.0 credentials](https://developers.google.com/identity/protocols/oauth2/javascript-implicit-flow#creatingcred).
 
-:::note 
+:::tip 
 
-When you create the credentials in Google, put in `http://localhost:5000/auth/google/callback` (replace `http://localhost:5000` with wherever your FireSync server is running) as an 'Authorised Redirect URL'.
+Set 'Authorised Redirect URL' to `http://localhost:5000/auth/google/callback` in your Google credentials config (or replace `http://localhost:5000` with wherever your FireSync server is running).
 
 :::
 
@@ -100,13 +100,13 @@ Your Google OAuth 2.0 Client Secret
 
 ### `FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL`
 
-The URL in your application that FireSync should redirect to in your application after successfully authenticating. For example:
+The URL in your application that FireSync should redirect to after successfully authenticating. For example:
 
 ```sh
 $ export FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL=http://my-app.example.com/dashboard
 ```
 
-The redirect URL will have some data appended to with the session tokens which the `@firesync/client` library will automatically read in to set up the client session.
+The redirect URL will have some data appended it to with the session tokens which the `@firesync/client` library will automatically use to set up the client session.
 
 :::tip 
 
