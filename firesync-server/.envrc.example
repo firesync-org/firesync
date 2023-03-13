@@ -4,5 +4,17 @@ export FS_POSTGRES_HOST=localhost
 export FS_POSTGRES_DATABASE=firesync
 export FS_POSTGRES_PORT=5432
 
+# Set to configure where to redirect to in your app after a user
+# has accepted an invite to collaborate on a doc:
+# export FS_REDEEM_INVITE_URL=http://localhost:3000
+
+# Set to restrict Cross-Origin Resource Sharing (CORS) to specific origins:
+# export FS_CORS_ALLOWED_ORIGINS=http://localhost:3000
+
 # Set if running behind a proxy, e.g. Caddy to serve SSL
 # export FS_TRUST_PROXY=true
+
+# Set to configure auth with Google OAuth 2.0
+# export FS_GOOGLE_AUTH_CLIENT_ID=...
+# export FS_GOOGLE_AUTH_CLIENT_SECRET=...
+# export FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL=http://localhost:3000
