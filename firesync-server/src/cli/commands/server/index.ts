@@ -14,20 +14,20 @@ export default class Server extends Command {
     host: Flags.string({
       char: 'h',
       summary: 'Host to bind to',
-      env: 'HOST',
+      env: 'FS_HOST',
       default: 'localhost'
     }),
 
     port: Flags.integer({
       char: 'p',
       summary: 'Port to bind to',
-      env: 'PORT',
+      env: 'FS_PORT',
       default: 5000
     }),
 
-    'debug-router': Flags.boolean({
+    'debug-danger-do-not-use-in-production': Flags.boolean({
       summary: 'Enable debug router',
-      env: 'FIRESYNC_ENABLE_DEBUG_ROUTER',
+      env: 'FS_DEBUG_DANGER_DO_NOT_USE_IN_PRODUCTION',
       default: false
     })
   }
@@ -37,7 +37,7 @@ export default class Server extends Command {
 
     const host = flags.host
     const port = flags.port
-    const enableDebugRouter = flags['debug-router']
+    const enableDebugRouter = flags['debug-danger-do-not-use-in-production']
 
     config.port = port
     config.host = host
