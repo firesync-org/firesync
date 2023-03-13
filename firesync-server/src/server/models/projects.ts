@@ -1,23 +1,30 @@
 import { db } from '../../db/db'
-import { NotFoundHttpError } from '../http/helpers/errors'
 import { IncomingMessage } from 'http'
-import { getHostName } from '../http/helpers/host'
+import { UnexpectedInternalStateError } from '../../shared/errors'
 
 export const projects = {
-  async getProjectFromRequest(req: IncomingMessage) {
-    const hostName = getHostName(req)
-    const host = hostName.split(':')[0] // Strip port
-
-    const project = await db
-      .knex('projects')
-      .select('id')
-      .where('host', host)
-      .first()
+  async getProjectFromRequest(_req: IncomingMessage) {
+    const project = await db.knex('projects').select('id').first()
 
     if (project === undefined) {
-      throw new NotFoundHttpError(`Project with host ${host} does not exist`)
+      throw new UnexpectedInternalStateError(`Project does not exist`)
     }
 
     return project
+
+    // const hostName = getHostName(req)
+    // const host = hostName.split(':')[0] // Strip port
+
+    // const project = await db
+    //   .knex('projects')
+    //   .select('id')
+    //   .where('host', host)
+    //   .first()
+
+    // if (project === undefined) {
+    //   throw new NotFoundHttpError(`Project with host ${host} does not exist`)
+    // }
+
+    // return project
   }
 }

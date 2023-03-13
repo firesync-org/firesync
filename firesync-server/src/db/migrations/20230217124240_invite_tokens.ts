@@ -26,7 +26,7 @@ export async function up(knex: Knex): Promise<void> {
     table.datetime('redeemed_at')
 
     // redeemed_as_doc_role_id
-    table.bigInteger('redeemed_as_doc_role_id').unsigned().notNullable()
+    table.bigInteger('redeemed_as_doc_role_id').unsigned().nullable()
     table.foreign('redeemed_as_doc_role_id').references('doc_roles.id')
   })
   await timestamps(knex, 'invite_tokens')

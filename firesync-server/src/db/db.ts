@@ -24,20 +24,6 @@ export type Doc = {
 export type Project = {
   id: string // bigint is returned as a string
   name: string
-  host: string
-  cors_allowed_origins?: string
-  invite_success_redirect_url?: string
-  invite_failure_redirect_url?: string
-  redeem_invite_url?: string
-  created_at: string
-  updated_at: string
-}
-
-export type AuthProviderGoogle = {
-  client_id: string
-  client_secret: string
-  success_redirect_url?: string
-  project_id: string
   created_at: string
   updated_at: string
 }
@@ -108,7 +94,6 @@ declare module 'knex/types/tables' {
     docs: Doc
     doc_roles: DocRole
     projects: Project
-    auth_provider_google: AuthProviderGoogle
     project_users: ProjectUser
     project_user_auth_providers: ProjectUserAuthProvider
     doc_updates: DocUpdate

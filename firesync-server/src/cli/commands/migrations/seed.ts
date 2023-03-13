@@ -15,9 +15,7 @@ export const seed = async () => {
   await db
     .knex('projects')
     .insert({
-      name: 'default',
-      host: 'localhost',
-      cors_allowed_origins: '*'
+      name: 'default'
     })
     .onConflict()
     .ignore()

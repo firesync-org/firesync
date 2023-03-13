@@ -14,10 +14,6 @@ export async function up(knex: Knex): Promise<void> {
       [],
       'name_length'
     )
-
-    table.string('cors_allowed_origins')
-    table.string('invite_success_redirect_url')
-    table.string('invite_failure_redirect_url')
   })
   await timestamps(knex, 'projects')
 }
