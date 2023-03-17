@@ -52,7 +52,6 @@ export const filterUpdates = (
       if (!clientStructs.has(clientId)) {
         clientStructs.set(clientId, [])
       }
-      // TODO: Are structs already in clock order?
       clientStructs.get(clientId)!.push(struct)
 
       if (!sv.has(clientId)) {
@@ -68,6 +67,11 @@ export const filterUpdates = (
     }
 
     dss.push(ds)
+  }
+
+  // Make sure structs are in clock order - expected by findIndexSS
+  for (const structs of clientStructs.values()) {
+    structs.sort((a, b) => a.id.clock - b.id.clock)
   }
 
   const encoder = new Y.UpdateEncoderV1()
