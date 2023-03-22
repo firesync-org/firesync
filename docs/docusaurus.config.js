@@ -9,7 +9,7 @@ const config = {
   title: "FireSync",
   tagline: "future of collaboration",
   url: "https://www.firesync.cloud",
-  baseUrl: "/s/",
+  baseUrl: "/",
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.ico",
@@ -120,7 +120,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} FireSync.`,
       },
       prism: {
         theme: lightCodeTheme,
