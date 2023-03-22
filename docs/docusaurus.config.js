@@ -8,7 +8,7 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
 const config = {
   title: "FireSync",
   tagline: "future of collaboration",
-  url: "https://www.firesync.cloud",
+  url: "https://docs.firesync.dev",
   baseUrl: "/",
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
