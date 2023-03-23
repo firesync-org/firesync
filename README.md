@@ -98,7 +98,7 @@ const firesync = new Firesync({
 
 #### Authentication
 
-We can check if the user logged in, and display either a logged in or logged out button. See [LoginWrapper](https://github.com/firesync-org/firesync/blob/main/demo-app/src/LoginWrapper.tsx) in the `demo-app/` folder for a more detailed example.
+We can check if the user logged in, and display either a logged in or logged out button. See [LoginWrapper](https://github.com/firesync-org/firesync/blob/main/examples/playground/src/LoginWrapper.tsx) in the `examples/playground/` folder for a more detailed example.
 
 ```tsx
 export default function Login() {
@@ -151,7 +151,7 @@ firesync.createDoc('foo')
   .then(() => { console.log('successfully created foo!') })
 ```
 
-See [DocsList](https://github.com/firesync-org/firesync/blob/main/demo-app/src/DocsList.tsx) in the `demo-app/` folder for a more detailed example.
+See [DocsList](https://github.com/firesync-org/firesync/blob/main/examples/playground/src/DocsList.tsx) in the `examples/playground/` folder for a more detailed example.
 
 #### Collaborative Editing
 
@@ -200,4 +200,4 @@ function Editor() {
 }
 ```
 
-See [Editor](https://github.com/firesync-org/firesync/blob/main/demo-app/src/Editor.tsx) in the `demo-app/` folder for a more detailed example.
+See [Editor](https://github.com/firesync-org/firesync/blob/main/examples/playground/src/Editor.tsx) in the `examples/playground/` folder for a more detailed example.
