@@ -1,8 +1,9 @@
 ---
 sidebar_position: 0
+slug: /
 ---
 
-# Firesync Intro
+# Intro
 
 PR TEST
 other deploy

@@ -6,13 +6,13 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "FireSync",
-  tagline: "future of collaboration",
+  title: "FireSync Docs",
+  tagline: "PaaS for real-time collaborative apps",
   url: "https://docs.firesync.dev",
   baseUrl: "/",
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
-  favicon: "img/favicon.ico",
+  favicon: "img/favicon.png",
 
   // Even if you don't use internalization, you can use this field to set useful
   // metadata like html lang. For example, if your site is Chinese, you may want
@@ -29,6 +29,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
+          routeBasePath: '/'
         },
         blog: {
           showReadingTime: true,
@@ -57,10 +58,9 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: "Firesync",
+        title: "FireSync",
         logo: {
-          alt: "My Site Logo",
-          src: "img/logo.svg",
+          src: "img/logo.png",
         },
         items: [
           {
@@ -69,12 +69,16 @@ const config = {
             position: "left",
             label: "Docs",
           },
-          { to: "/blog", label: "Blog", position: "left" },
           {
-            href: "https://github.com/facebook/docusaurus",
+            href: "https://github.com/firesync-org/firesync",
             label: "GitHub",
             position: "right",
           },
+          {
+            href: "https://www.firesync.cloud",
+            label: "FireSync Cloud",
+            position: "right",
+          }
         ],
       },
       footer: {

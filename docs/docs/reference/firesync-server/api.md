@@ -1,3 +1,3 @@
 # API
 
-See the [Open API Spec](/s/api) for FireSync server API.
+See the [Open API Spec](/api) for FireSync server API.
