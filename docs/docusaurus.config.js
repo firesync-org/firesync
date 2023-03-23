@@ -29,7 +29,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
-          routeBasePath: '/'
+          routeBasePath: "/",
         },
         blog: {
           showReadingTime: true,
@@ -78,7 +78,7 @@ const config = {
             href: "https://www.firesync.cloud",
             label: "FireSync Cloud",
             position: "right",
-          }
+          },
         ],
       },
       footer: {

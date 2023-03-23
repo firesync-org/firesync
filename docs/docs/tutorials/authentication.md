@@ -1,10 +1,10 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 # Authentication
 
-FireSync provides user registration and authentication out of the box. In this tutorial we will use Google as an authentication provider, but if you want to connect to an existing authentication system that you already have, check out our guide on [using your own backend](../guides/authentication/your-own).
+FireSync provides user registration and authentication out of the box. In this tutorial we will use Google as an authentication provider, but if you want to your own authentication system, check out our guide on [using your own backend](../guides/authentication/your-own).
 
 ## Create Google OAuth Credentials
 

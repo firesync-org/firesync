@@ -1,7 +1,9 @@
+import { useState } from "react";
+import 'bootstrap/dist/css/bootstrap.css';
+
 import { Y } from "@firesync/client";
 import { useSyncedStore } from "@syncedstore/react";
 import { syncedStore } from "@syncedstore/core";
-import { useState } from "react";
 
 type Item = {
   description: string;

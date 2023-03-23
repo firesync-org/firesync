@@ -20,3 +20,10 @@ FireSync comes as `npm` package, so you will need to have [Node.js](https://node
 ### Docker
 
 It will be helpful if you have [Docker](https://www.docker.com/) installed, since Docker provides an easy way to create a local Postgres database for FireSync to store your data in.
+
+:::warning Todo
+
+* Mention `examples/tutorial-todo-app`
+* Discuss Yjs concpets
+
+:::
