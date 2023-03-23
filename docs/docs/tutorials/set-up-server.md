@@ -1,4 +1,8 @@
-# Setting up the FireSync server
+---
+sidebar_position: 1
+---
+
+# Set up FireSync server
 
 ## Installing @firesync/server
 

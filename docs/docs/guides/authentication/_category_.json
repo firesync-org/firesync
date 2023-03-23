@@ -1,0 +1,8 @@
+{
+  "label": "Authentication",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Guides on setting up authenticaton using different providers"
+  }
+}

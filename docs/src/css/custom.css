@@ -34,3 +34,9 @@
 .footer--dark {
   --ifm-footer-background-color: #0c1120 !important;
 }
+
+.img_node_modules-\@docusaurus-theme-classic-lib-theme-MDXComponents-Img-styles-module {
+  margin: auto;
+  border: 1px solid #ddd;
+  display: block;
+}
