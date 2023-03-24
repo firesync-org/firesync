@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "bootstrap/dist/css/bootstrap.css";
 
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
+
 import { Y } from "@firesync/client";
 import { useSyncedStore } from "@syncedstore/react";
 import { syncedStore } from "@syncedstore/core";
@@ -40,7 +42,7 @@ export default function TodoLists() {
           newTodoList(newTitle);
           e.preventDefault();
         }}
-        className="mt-3"
+        className="my-3"
       >
         <input
           type="text"
@@ -50,13 +52,13 @@ export default function TodoLists() {
           onChange={(e) => setNewTitle(e.target.value)}
         />
       </form>
-      <div className="row g-3">
-        {todoLists.map(({ id, todoList }) => (
-          <div className="col">
+      <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3 }}>
+        <Masonry gutter="1rem">
+          {todoLists.map(({ id, todoList }) => (
             <TodoListCard todoList={todoList} key={id} />
-          </div>
-        ))}
-      </div>
+          ))}
+        </Masonry>
+      </ResponsiveMasonry>
     </div>
   );
 }
@@ -76,7 +78,7 @@ export function TodoListCard({
   };
 
   return (
-    <div className="card mt-3">
+    <div className="card">
       <div className="card-body">
         <h2 className="h4">{todoList.title.toJSON()}</h2>
         {todoList.items.map((item, index) => {
