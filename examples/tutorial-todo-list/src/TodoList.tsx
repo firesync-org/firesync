@@ -1,6 +1,6 @@
-import { useState } from "react";
-import 'bootstrap/dist/css/bootstrap.css';
-
+import { useEffect, useState } from "react";
+import "bootstrap/dist/css/bootstrap.css";
+import { firesync } from "./firesync";
 import { Y } from "@firesync/client";
 import { useSyncedStore } from "@syncedstore/react";
 import { syncedStore } from "@syncedstore/core";
@@ -14,6 +14,20 @@ const doc = new Y.Doc();
 const store = syncedStore({ todos: [] as Item[] }, doc);
 
 export default function TodoList() {
+  const DOC_KEY = "todo-list-example"
+
+  const [created, setCreated] = useState(false)
+  useEffect(() => {
+    firesync.createDoc(DOC_KEY).then(() => setCreated(true))
+  }, []);
+
+  useEffect(() => {
+    if (created) {
+      firesync.connection.subscribe(DOC_KEY, doc)
+      return () => firesync.connection.unsubscribe(DOC_KEY)
+    }
+  })
+
   const { todos } = useSyncedStore(store);
 
   const [newDescription, setNewDescription] = useState("");
