@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.css";
 
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
@@ -9,6 +9,7 @@ import { syncedStore } from "@syncedstore/core";
 import { MappedTypeDescription } from "@syncedstore/core/types/doc";
 import { useReactive } from "@reactivedata/react";
 import { uuidv4 } from "lib0/random";
+import { firesync } from "./firesync";
 
 type TodoList = {
   items: Array<{
@@ -27,13 +28,38 @@ export default function TodoLists() {
   const todoLists = useReactive(todoListsStore);
 
   const [newTitle, setNewTitle] = useState("");
-  const newTodoList = (title: string) => {
-    const doc = new Y.Doc();
-    const store = syncedStore<TodoList>({ items: [], title: "text" }, doc);
+  const newTodoList = async (title: string) => {
+    const id = uuidv4()
+    const docKey = `todo-list/${id}`
+    await firesync.createDoc(docKey)
+    const ydoc = firesync.connection.subscribe(docKey)
+    const store = syncedStore<TodoList>({ items: [], title: "text" }, ydoc);
     store.title.insert(0, title);
-    todoLists.push({ todoList: store, id: uuidv4() });
+    todoLists.push({ todoList: store, id });
     setNewTitle("");
   };
+
+  useEffect(() => {
+    firesync.getUserRoles().then(({ data }) => {
+      if (data) {
+        const {
+          user: { roles }
+        } = data
+        for (const role of roles) {
+          const m = role.docKey.match(/^todo-list\/(.*)$/)
+          if (m) {
+            const id = m[1]
+            const ydoc = firesync.connection.subscribe(role.docKey)
+            const store = syncedStore<TodoList>({ items: [], title: "text" }, ydoc);
+            todoLists.push({
+              todoList: store,
+              id
+            })
+          }
+        }
+      }
+    })
+  }, [])
 
   return (
     <div className="container mt-4">
