@@ -72,9 +72,9 @@ $ npm install --save @firesync/client @syncedstore/core @syncedstore/react boots
 
 ## Create Todo App
 
-Update `src/App.tsx` to contain the following code, which gives us a basic todo list using Yjs as our underlying data store. At the moment the Yjs doc is only store on the client side, but in the next sections we will set it up to sync in real-time to the FireSync server.
+Add `src/TodoList.tsx` with the following code: 
 
-```tsx title=src/App.tsx
+```tsx title=src/TodoList.tsx
 import { useState } from "react";
 import 'bootstrap/dist/css/bootstrap.css';
 
@@ -90,7 +90,7 @@ type Item = {
 const doc = new Y.Doc();
 const store = syncedStore({ todos: [] as Item[] }, doc);
 
-export default function App() {
+export default function TodoList() {
   const { todos } = useSyncedStore(store);
 
   const [newDescription, setNewDescription] = useState("");
@@ -152,3 +152,15 @@ export default function App() {
   );
 }
 ```
+
+Also update `src/App.tsx` to load our todo list:
+
+```ts title=src/App.tsx
+import TodoList from "./TodoList";
+
+export default function App() {
+  return <TodoList />
+}
+```
+
+This set up a basic todo list using Yjs as our underlying data store. At the moment the Yjs doc is only store on the client side, but in the next sections we will set it up to sync in real-time to the FireSync server.
