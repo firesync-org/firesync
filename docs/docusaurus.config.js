@@ -57,6 +57,13 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      announcementBar: {
+        id: 'wip',
+        content:
+          '⚠️ These docs are a work in progress',
+        backgroundColor: '#cdb6f8',
+        isCloseable: false,
+      },
       navbar: {
         title: "FireSync",
         logo: {
@@ -89,7 +96,15 @@ const config = {
             items: [
               {
                 label: "Tutorial",
-                to: "/docs/intro",
+                to: "/tutorials",
+              },
+              {
+                label: "Guides",
+                to: "/category/guides",
+              },
+              {
+                label: "Reference",
+                to: "/category/reference",
               },
             ],
           },
@@ -97,16 +112,8 @@ const config = {
             title: "Community",
             items: [
               {
-                label: "Stack Overflow",
-                href: "https://stackoverflow.com/questions/tagged/docusaurus",
-              },
-              {
-                label: "Discord",
-                href: "https://discordapp.com/invite/docusaurus",
-              },
-              {
                 label: "Twitter",
-                href: "https://twitter.com/docusaurus",
+                href: "https://twitter.com/firesyncapp",
               },
             ],
           },
@@ -114,12 +121,8 @@ const config = {
             title: "More",
             items: [
               {
-                label: "Blog",
-                to: "/blog",
-              },
-              {
                 label: "GitHub",
-                href: "https://github.com/facebook/docusaurus",
+                href: "https://github.com/firesyncorg/firesync",
               },
             ],
           },
