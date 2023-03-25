@@ -19,9 +19,17 @@ FireSync gives you everything you need to build a real-time collaborative app ou
 * **💡 Suggesting mode and track changes (coming soon)**
 * **🔔 Notifications for changes and comments in document (coming soon)**
 
+## Documentation
+
+See [https://docs.firesync.dev/](https://docs.firesync.dev/) for a complete documentation guide. Or dive straight into:
+
+* [Tutorial](https://docs.firesync.dev//tutorials/) - Start here if it's your first time with FireSync to get an understanding of how it all works.
+* [Guides](https://docs.firesync.dev/category/guides) - In depth guides on how to do specific things with FireSync.
+* [Reference](https://docs.firesync.dev/category/reference) - Complete reference guides for the FireSync libraries with API specs.
+
 ## Getting Started
 
-See our Getting Started **TODO** docs for a more comprehensive guide, but here's the gist of what setting up FireSync looks like for your app.
+Here's a quick overview setting up FireSync looks like for your app.
 
 ### Running the backend
 
