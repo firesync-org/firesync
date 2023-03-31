@@ -8,7 +8,7 @@ If you think FireSync looks promising and would like to build on it, please emai
 
 <h1 align="center">🔥 FireSync</h1>
 
-FireSync is a complete backend for building a real-time collaborative app. You can focus on your application's core logic and UX, while the FireSync takes care of:
+FireSync is a complete backend for building a real-time collaborative app. You can focus on your application's core logic and UX, while FireSync takes care of:
 
 * **🚀 Real-time collaboration via [Yjs](https://github.com/yjs/yjs)**
 * **🗄️ [Postgres](https://www.postgresql.org/) backed storage**
@@ -22,6 +22,8 @@ FireSync is a complete backend for building a real-time collaborative app. You c
 * **💬 Comments (coming soon)**
 * **💡 Suggesting mode and track changes (coming soon)**
 * **🔔 Notifications for changes and comments (coming soon)**
+
+All of this is available out of the box, or you can use your own backend and just pick and choose which parts of FireSync you'd like to use.
 
 ## 📢 Stay up to date
 
