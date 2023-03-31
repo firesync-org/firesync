@@ -1,5 +1,3 @@
-("use strict");
-
 import { telemetry } from './lib/Logging/OpenTelemetry';
 telemetry.start()
 
