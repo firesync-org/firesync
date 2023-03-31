@@ -2,22 +2,30 @@
 ⚠️ <em>This is an early preview and is not suitable for production use yet! Do no expect backwards compatibility with future versions yet.</em>
 </p>
 
+<p align="center">
+If you think FireSync looks promising and would like to build on it, please email us at <a href="mailto:hello@firesync.live">hello@firesync.live</a> and we'd love to work with you to make sure FireSync fits your needs.
+</p>
+
 <h1 align="center">🔥 FireSync</h1>
 
-FireSync gives you everything you need to build a real-time collaborative app out-of-box. You can focus on your application's core business logic while the FireSync open-source back-end and client libraries give you:
+FireSync is a complete backend for building a real-time collaborative app. You can focus on your application's core logic and UX, while the FireSync takes care of:
 
-* **🚀 Real-time collaboration over arbitrary data via [Yjs](https://github.com/yjs/yjs)**
+* **🚀 Real-time collaboration via [Yjs](https://github.com/yjs/yjs)**
 * **🗄️ [Postgres](https://www.postgresql.org/) backed storage**
-* **🧑 User management out of the box**
+* **🧑 User management**
 * **🔓 Role based permissions**
 * **📧 Email invites to join docs (coming soon)**
-* **👥 Teams, groups and anonymous access for flexible sharing options**
-* **👀 Online indicators, cursors and focus indicators of other users (coming soon)**
-* **🕒 Full browseable history of changes to a doc (coming soon)**
+* **👥 Teams, groups and anonymous access (coming soon)**
+* **👀 Online indicators and user cursors (coming soon)**
+* **🕒 Full browseable history of changes (coming soon)**
 * **↩️ Rollback to previous versions (coming soon)**
-* **💬 Comments anywhere in your data structure (coming soon)**
+* **💬 Comments (coming soon)**
 * **💡 Suggesting mode and track changes (coming soon)**
-* **🔔 Notifications for changes and comments in document (coming soon)**
+* **🔔 Notifications for changes and comments (coming soon)**
+
+## 📢 Stay up to date
+
+[Sign up to our mailing list](https://cdn.forms-content.sg-form.com/b839aa5d-cbac-11ed-8fbd-bebc803b2bd5) to stay up to date as we develop FireSync in the open. We'll let you know about new features, our ideas and our future roadmap.
 
 ## Documentation
 
