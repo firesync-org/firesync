@@ -1,7 +1,4 @@
-import { telemetry } from './lib/Logging/OpenTelemetry';
-telemetry.start()
-
-
+import {} from './lib/Logging/OpenTelemetry'
 import express from 'express'
 import expressLayouts from 'express-ejs-layouts'
 import path from 'path'
