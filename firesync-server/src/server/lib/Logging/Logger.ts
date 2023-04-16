@@ -1,40 +1,16 @@
 import bunyan from 'bunyan'
 import * as Y from 'yjs'
+import { svToString, updateToString } from '../../../shared/yUtils'
 
 const updateSerializer = (
   update: Uint8Array | ReturnType<typeof Y.decodeUpdate>
-) => {
-  if (update instanceof Uint8Array) {
-    update = Y.decodeUpdate(update)
-  }
-  return {
-    structs: update.structs.map((struct) => {
-      return {
-        clientId: struct.id.client,
-        clock: struct.id.clock,
-        content:
-          struct instanceof Y.Item
-            ? struct.content instanceof Y.ContentString
-              ? struct.content.str
-              : null
-            : null,
-        len: struct.length
-      }
-    }),
-    ds: update.ds
-  }
-}
+) => updateToString(update)
 
 const updatesSerializer = (
   updates: Array<Uint8Array | ReturnType<typeof Y.decodeUpdate>>
 ) => updates.map(updateSerializer)
 
-const svSerializer = (sv: Uint8Array | Map<number, number>) => {
-  if (sv instanceof Uint8Array) {
-    sv = Y.decodeStateVector(sv)
-  }
-  return Object.fromEntries(sv)
-}
+const svSerializer = svToString
 
 type LoggerInterface = {
   info: (obj: Record<string, any>, message: string) => void
@@ -64,7 +40,9 @@ class Logger implements LoggerInterface {
           updateFinalSv: svSerializer,
           serverSv: svSerializer,
           expectedSv: svSerializer,
-          newSv: svSerializer
+          newSv: svSerializer,
+          ...bunyan.stdSerializers,
+          error: bunyan.stdSerializers.err
         }
       })
     }

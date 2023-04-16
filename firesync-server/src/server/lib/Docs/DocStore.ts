@@ -5,11 +5,14 @@ import {
   filterUpdates,
   getFinalStateOfUpdate,
   getInitialStateOfUpdate
-} from './updates'
+} from '../../../shared/yUtils'
 import models from '../../models'
 import EventEmitter from 'events'
 import { logging } from '../Logging/Logger'
-import { BadRequestError } from '../../../shared/errors'
+import {
+  BadRequestError,
+  UnexpectedInternalStateError
+} from '../../../shared/errors'
 import { config } from '../../../config'
 
 const logger = logging.child('docStore')
@@ -84,12 +87,33 @@ class DocStore extends EventEmitter {
     await this.pendingConnect
   }
 
-  private async waitForPendingStateChange(docId: string) {
-    await this.connectSubscriber()
-    const pendingStateChange = this.pendingDocStateChanges.get(docId)
-    if (pendingStateChange) {
-      await pendingStateChange
+  private waitForPendingStateChange(docId: string) {
+    const wait = async () => {
+      await this.connectSubscriber()
+      const pendingStateChange = this.pendingDocStateChanges.get(docId)
+      if (pendingStateChange) {
+        await pendingStateChange
+      }
     }
+
+    const TIMEOUT_AFTER = 30 * 1000 // 30 seconds
+
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(
+          new UnexpectedInternalStateError(
+            `Timed out after 30 seconds of waiting for pending state change`
+          )
+        )
+      }, TIMEOUT_AFTER)
+
+      wait()
+        .then(() => {
+          clearTimeout(timer)
+          resolve()
+        })
+        .catch(reject)
+    })
   }
 
   private async doStateChange(docId: string, stateChange: () => Promise<void>) {
@@ -103,7 +127,7 @@ class DocStore extends EventEmitter {
     logger.debug(
       {
         docId,
-        update: Y.decodeUpdate(update),
+        update,
         source
       },
       'applyUpdate'
@@ -119,7 +143,7 @@ class DocStore extends EventEmitter {
     logger.debug(
       {
         docId,
-        filteredUpdate: Y.decodeUpdate(filteredUpdate),
+        update,
         source
       },
       'filteredUpdate'
@@ -160,13 +184,10 @@ class DocStore extends EventEmitter {
   }
 
   async getStateAsUpdate(docId: string, sv: Uint8Array) {
-    const updates = await models.updates.getUpdates(docId)
-    const update = filterUpdates(updates, Y.decodeStateVector(sv))
+    const decodedSv = Y.decodeStateVector(sv)
+    const updates = await models.updates.getUpdates(docId, decodedSv)
+    const update = filterUpdates(updates, decodedSv)
     logger.debug({ docId, sv, update }, 'getStateAsUpdates')
-
-    // TODO: We get lots of small updates back from pg here.
-    // Do we want to merge them before sending to the client?
-    // Do we want to do this before or after filtering them?
     return update
   }
 }

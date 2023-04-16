@@ -26,5 +26,19 @@ export const projects = {
     // }
 
     // return project
+  },
+
+  async getProjectFromName(name: string) {
+    const project = await db
+      .knex('projects')
+      .select('id')
+      .where('name', name)
+      .first()
+
+    if (project === undefined) {
+      throw new UnexpectedInternalStateError(`Project does not exist`)
+    }
+
+    return project
   }
 }

@@ -93,6 +93,12 @@ export class DebugClient {
     return data.connections
   }
 
+  async packUpdates(docKey: string) {
+    await this.fetch(`/debug/docs/${docKey}/updates/pack`, {
+      method: 'POST'
+    })
+  }
+
   async terminateDocConnections(docKey: string) {
     await this.fetch(`/debug/docs/${docKey}/connections/terminate`, {
       method: 'POST'
@@ -108,6 +114,16 @@ export class DebugClient {
   async acceptConnections() {
     await this.fetch(`/debug/connections/accept`, {
       method: 'POST'
+    })
+  }
+
+  async setConfig(config: {
+    packAfterNUpdates?: number
+    waitSecondsBeforePacking?: number
+  }) {
+    await this.fetch(`/debug/config`, {
+      method: 'POST',
+      body: JSON.stringify(config)
     })
   }
 

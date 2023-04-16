@@ -3,8 +3,9 @@
     "module": "esnext",
     "moduleResolution": "node",
     "target": "es5",
+    "baseUrl": ".",
     "paths": {
-      "@firesync/client": ["firesync-client/"]
+      "@firesync/client": ["./firesync-client/"]
     },
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
@@ -16,7 +17,8 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "strict": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "downlevelIteration": true
   },
   "exclude": ["**/node_modules", "**/dist", "**/*.config.cjs", "**/*.config.js", "docs/"]
 }

@@ -8,6 +8,7 @@ import { tokens } from '../../models/tokens'
 import { BadRequestHttpError } from '../helpers/errors'
 import models from '../../../server/models'
 import { isRole } from '../../../shared/roles'
+import { config } from '../../../config'
 
 export const debugRouter = () => {
   const debugRouter = express.Router()
@@ -122,11 +123,10 @@ export const debugRouter = () => {
       const project = await models.projects.getProjectFromRequest(req)
       const docKey = req.params.docKey!
       const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
+      const updates = await models.updates.getUpdates(docId)
 
       res.json({
-        updates: (await models.updates.getUpdates(docId)).map((buffer) =>
-          Array.from(buffer)
-        )
+        updates: updates.map((update) => Array.from(update))
       })
     })
   )
@@ -136,6 +136,18 @@ export const debugRouter = () => {
       connections: webSockets.getConnectionCounts()
     })
   })
+
+  debugRouter.post(
+    '/docs/:docKey/updates/pack',
+    requestHandler(async (req, res) => {
+      const project = await models.projects.getProjectFromRequest(req)
+      const docKey = req.params.docKey!
+      const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
+
+      await models.updates.tryPackUpdates(docId)
+      res.send('OK')
+    })
+  )
 
   debugRouter.post(
     '/docs/:docKey/connections/terminate',
@@ -156,6 +168,18 @@ export const debugRouter = () => {
 
   debugRouter.post('/connections/accept', async (req, res) => {
     webSockets.chaosMonkey.refuseConnections = false
+    res.send('OK')
+  })
+
+  debugRouter.post('/config', async (req, res) => {
+    const packAfterNUpdates = req.body.packAfterNUpdates
+    if (typeof packAfterNUpdates === 'number') {
+      config.packAfterNUpdates = packAfterNUpdates
+    }
+    const waitSecondsBeforePacking = req.body.waitSecondsBeforePacking
+    if (typeof waitSecondsBeforePacking === 'number') {
+      config.waitSecondsBeforePacking = waitSecondsBeforePacking
+    }
     res.send('OK')
   })
 

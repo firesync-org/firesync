@@ -9,30 +9,30 @@ export type DocRole = {
   doc_id: string
   project_user_id: string
   role: Role
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type Doc = {
   id: string // bigint is returned as a string
   project_id: string
   key: string
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type Project = {
   id: string // bigint is returned as a string
   name: string
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type ProjectUser = {
   id: string // bigint is returned as a string
   project_id: string
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type AuthProvider = 'google'
@@ -42,15 +42,20 @@ export type ProjectUserAuthProvider = {
   project_user_id: string
   auth_provider: AuthProvider
   external_user_id: string
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type DocUpdate = {
   id: string // bigint is returned as a string
   doc_id: string
   updates: Buffer
-  sv: Record<string, number>
+  sv: Buffer
+  size: number
+  pack_level: number
+  pack_last_update_inserted_at: Date
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type InviteToken = {
@@ -63,8 +68,8 @@ export type InviteToken = {
   expires_at: string
   redeemed_at?: string
   redeemed_as_doc_role_id?: string
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type AccessToken = {
@@ -74,8 +79,8 @@ export type AccessToken = {
   token: string
   expires_at: string
   revoked: boolean
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 export type RefreshToken = {
@@ -85,8 +90,8 @@ export type RefreshToken = {
   token: string
   expires_at: string
   revoked: boolean
-  created_at: string
-  updated_at: string
+  inserted_at: Date
+  updated_at: Date
 }
 
 declare module 'knex/types/tables' {

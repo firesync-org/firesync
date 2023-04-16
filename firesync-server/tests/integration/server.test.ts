@@ -6,7 +6,7 @@ import { tryUntil, testWrapper, getClient } from './utils'
 
 describe('Server Syncing', () => {
   test(
-    'should handle the client needing the entire doc',
+    'client needs the entire doc',
     testWrapper(
       {},
       async ({
@@ -74,10 +74,38 @@ describe('Server Syncing', () => {
         const { connection: connection2 } = getClient({
           session
         })
+
+        const receivedUpdate = new Promise<Uint8Array>((resolve) => {
+          connection2.on('update', (docKey, update) => {
+            resolve(update)
+          })
+        })
+
         connection2.subscribe(docKey, ydoc2)
+
+        // Check that recieved update only contains 'bar'
+        const update = Y.decodeUpdate(await receivedUpdate)
+        expect(update.structs.length).to.equal(1)
+        expect(update.structs[0]!.length).to.equal(3)
+        expect(
+          ((update.structs[0]! as Y.Item).content as Y.ContentString).str
+        ).to.equal('bar')
 
         await tryUntil(async () => {
           expect(yText2.toString()).to.equal('foobar')
+        })
+
+        // Make some changes to doc2 while connection1 is disconnected to test the
+        // resyncing going the other way with client ids connection1 doesn't know about
+        connection1.disconnect()
+        await tryUntil(async () => {
+          expect(connection1.connected).to.equal(false)
+        })
+        yText2.insert(6, 'zip')
+
+        connection1.connect()
+        await tryUntil(async () => {
+          expect(yText1.toString()).to.equal('foobarzip')
         })
 
         connection1.disconnect()
@@ -87,7 +115,7 @@ describe('Server Syncing', () => {
   )
 
   test(
-    'should handle the client already being up to date',
+    'client is up to date',
     testWrapper(
       {},
       async ({ docKey, client: { connection }, server, ydoc }) => {
@@ -117,9 +145,8 @@ describe('Server Syncing', () => {
     )
   )
 
-  // Check that the server filters the updates to just the additional ones
   test(
-    'should handle updates from the client it already has',
+    'client sending updates the server already has',
     testWrapper(
       { connect: false },
       async ({ docKey, client: { connection }, server, ydoc }) => {
@@ -160,6 +187,7 @@ describe('Server Syncing', () => {
           ((updates[0]!.structs[1] as Y.Item).content as Y.ContentString).str
         ).to.equal('bar')
 
+        // Check that the server filters the updates to just the additional ones
         // Second update should only be 'baz'
         expect(updates[1]!.structs).to.have.length(1)
         expect(
@@ -172,7 +200,7 @@ describe('Server Syncing', () => {
   )
 
   test(
-    'should error if the client sends updates that do not match the current state vector',
+    'client sends updates that do not match the current state vector',
     testWrapper(
       { connect: false },
       async ({ docKey, client: { connection }, server, ydoc }) => {
@@ -236,8 +264,4 @@ describe('Server Syncing', () => {
       }
     )
   )
-
-  it.todo('should only send updates that the client needs')
-
-  it.todo('should do all the above tests but with multiple clients ids')
 })

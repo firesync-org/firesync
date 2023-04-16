@@ -1,5 +1,5 @@
 {
   "include": ["src", "tests"],
   "exclude": ["**/dist"],
-  "extends": "../../tsconfig.json"
+  "extends": "../tsconfig.json"
 }

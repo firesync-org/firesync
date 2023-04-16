@@ -17,6 +17,7 @@ export * from './shared/errors'
 export { Role, roles } from './shared/roles'
 export { Session } from './session'
 export { Api } from './api'
+export * as chaosMonkey from './shared/chaosMonkey'
 
 type Options = {
   baseUrl: string

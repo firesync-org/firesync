@@ -6,7 +6,8 @@ import {
   AuthError,
   BadRequestError,
   FiresyncError,
-  MessageEncodingError
+  MessageEncodingError,
+  UnexpectedInternalStateError
 } from '../../shared/errors'
 import {
   decodeMessage,
@@ -69,23 +70,27 @@ export class Connection extends EventEmitter {
       return
     }
 
-    switch (message.messageType) {
-      case MessageType.SUBSCRIBE_REQUEST:
-        await this.handleIncomingSubscribeRequest(message)
-        break
-      case MessageType.UNSUBSCRIBE_REQUEST:
-        await this.handleIncomingUnsubscribeRequest(message)
-        break
-      case MessageType.SYNC_STATE_VECTOR:
-        await this.handleIncomingStateVector(message)
-        break
-      case MessageType.UPDATE:
-        await this.handleIncomingUpdates(message, this.id)
-        break
-      default:
-        this.handleError(
-          new BadRequestError(`Unknown message type: ${message.messageType}`)
-        )
+    try {
+      switch (message.messageType) {
+        case MessageType.SUBSCRIBE_REQUEST:
+          await this.handleIncomingSubscribeRequest(message)
+          break
+        case MessageType.UNSUBSCRIBE_REQUEST:
+          await this.handleIncomingUnsubscribeRequest(message)
+          break
+        case MessageType.SYNC_STATE_VECTOR:
+          await this.handleIncomingStateVector(message)
+          break
+        case MessageType.UPDATE:
+          await this.handleIncomingUpdates(message, this.id)
+          break
+        default:
+          this.handleError(
+            new BadRequestError(`Unknown message type: ${message.messageType}`)
+          )
+      }
+    } catch (error) {
+      this.handleError(error as Error)
     }
   }
 
@@ -351,7 +356,8 @@ export class Connection extends EventEmitter {
     return docKey
   }
 
-  private handleError(error: FiresyncError) {
+  private handleError(error: Error) {
+    logger.error({ error }, 'Connection error')
     this.sendErrorFatal(error.name, error.message)
     this.emit('error', error)
   }
@@ -381,7 +387,11 @@ export class Connection extends EventEmitter {
     ).filter((c) => c !== conn)
 
     if (this.connectionsByDocId[docId]!.length === 0) {
-      await docStore.unsubscribe(docId)
+      try {
+        await docStore.unsubscribe(docId)
+      } catch (error) {
+        logger.error({ error }, 'error unsubscribing')
+      }
     }
   }
 
@@ -395,8 +405,12 @@ export class Connection extends EventEmitter {
         // If we only have the originating connection connected, don't bother
         // looking up the update - they already have it and we've acked it
         if (connections.length > 0) {
-          const update = await models.updates.getUpdateById(docId, dbUpdateId)
-          connections.forEach((conn) => conn.sendUpdate(docId, update))
+          try {
+            const update = await models.updates.getUpdateById(docId, dbUpdateId)
+            connections.forEach((conn) => conn.sendUpdate(docId, update))
+          } catch (error) {
+            connections.forEach((conn) => conn.handleError(error as Error))
+          }
         }
       }
     )

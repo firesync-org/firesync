@@ -1,4 +1,31 @@
-import * as Y from 'yjs'
+// A lot of the code in this file is copied or derived from Yjs and used
+// under the terms of the following license:
+
+// The MIT License (MIT)
+
+// Copyright (c) 2014
+//   - Kevin Jahns <kevin.jahns@rwth-aachen.de>.
+//   - Chair of Computer Science 5 (Databases & Information Systems), RWTH Aachen University, Germany
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+import { Y } from '../y'
 import * as encoding from 'lib0/encoding'
 import * as array from 'lib0/array'
 
@@ -36,6 +63,50 @@ export const getFinalStateOfUpdate = (update: Uint8Array) => {
   return sv
 }
 
+export const svToString = (sv: Uint8Array | Map<number, number>) => {
+  if (sv instanceof Uint8Array) {
+    sv = Y.decodeStateVector(sv)
+  }
+  return Array.from(sv.entries())
+    .map(([clientId, clock]) => `${clientId}:${clock}`)
+    .join(' ')
+}
+
+export const updateToString = (updates: Uint8Array | ReturnType<typeof Y.decodeUpdate>) => {
+  if (updates instanceof Uint8Array) {
+    updates = Y.decodeUpdate(updates)
+  }
+  const { structs, ds } = updates
+
+  const structsStr = structs
+    .map((value) => {
+      if (value instanceof Y.Item) {
+        const id = value.id
+        const content = value.content as any
+        return `${id.client}:${id.clock}:${
+          content.str ? JSON.stringify(content.str) : JSON.stringify(content)
+        }`
+      } else {
+        return null
+      }
+    })
+    .filter((s) => s !== null)
+    .join(' ')
+
+  const dsStr = Array.from(ds.clients.entries())
+    .map(([client, item]) => {
+      return `${client}(${item
+        .map(({ clock, len }) => `${clock}:${len}`)
+        .join(' ')})`
+    })
+    .join(' ')
+
+  return [
+    structs.length > 0 ? `S: ${structsStr}` : '',
+    ds.clients.size > 0 ? `D: ${dsStr}` : ''
+  ].join(' ')
+}
+
 export const filterUpdates = (
   updates: Uint8Array[],
   _sv: Map<number, number>
@@ -71,7 +142,7 @@ export const filterUpdates = (
 
   // Make sure structs are in clock order - expected by findIndexSS
   for (const structs of clientStructs.values()) {
-    structs.sort((a, b) => a.id.clock - b.id.clock)
+    structs.sort((a: Y.AbstractStruct, b: Y.AbstractStruct) => a.id.clock - b.id.clock)
   }
 
   const encoder = new Y.UpdateEncoderV1()
@@ -91,6 +162,76 @@ export const filterUpdates = (
     })
 
   writeDeleteSet(encoder, mergeDeleteSets(dss))
+
+  return encoder.toUint8Array()
+}
+
+export const packUpdates = (updates: Uint8Array[]) => {
+  const yUpdate = Y.decodeUpdate(Y.mergeUpdates(updates))
+  const newStructs = []
+  let currentItem: Y.Item | Y.GC | undefined
+  let nextItem: Y.Item | Y.GC | undefined
+  while ((nextItem = yUpdate.structs.shift())) {
+    if (nextItem instanceof Y.Item && currentItem instanceof Y.Item) {
+      // Logic from https://github.com/yjs/yjs/blob/710ac31af3bc1520437fdc9b0e6eef9cc2993e89/src/structs/Item.js#L571-L583
+      if (
+        currentItem.constructor === nextItem.constructor &&
+        Y.compareIDs(nextItem.origin, currentItem.lastId) &&
+        // currentItem.right === nextItem &&
+        Y.compareIDs(currentItem.rightOrigin, nextItem.rightOrigin) &&
+        currentItem.id.client === nextItem.id.client &&
+        currentItem.id.clock + currentItem.length === nextItem.id.clock &&
+        currentItem.deleted === nextItem.deleted &&
+        currentItem.redone === null &&
+        nextItem.redone === null &&
+        currentItem.content.constructor === nextItem.content.constructor &&
+        currentItem.content.mergeWith(nextItem.content)
+      ) {
+        if (nextItem.keep) {
+          // Is this flag persisted? If not, this isn't necessary, but no harm
+          currentItem.keep = true
+        }
+        currentItem.length += nextItem.length
+        continue
+      }
+    }
+
+    // Couldn't merge, so push as is
+    newStructs.push(nextItem)
+    currentItem = nextItem
+  }
+
+  const clientStructs = new Map<number, Struct[]>()
+
+  for (const struct of newStructs) {
+    const clientId = struct.id.client
+    if (!clientStructs.has(clientId)) {
+      clientStructs.set(clientId, [])
+    }
+    clientStructs.get(clientId)!.push(struct)
+  }
+  // Make sure structs are in clock order - expected by findIndexSS
+  for (const structs of clientStructs.values()) {
+    structs.sort((a: Y.AbstractStruct, b: Y.AbstractStruct) => a.id.clock - b.id.clock)
+  }
+
+  const encoder = new Y.UpdateEncoderV1()
+  encoding.writeVarUint(encoder.restEncoder, clientStructs.size)
+
+  // Write items with higher client ids first
+  // This heavily improves the conflict algorithm.
+  Array.from(clientStructs.entries())
+    .sort((a, b) => b[0] - a[0])
+    .forEach(([clientId, structs]) => {
+      writeStructsForClient(
+        encoder,
+        clientStructs.get(clientId)!,
+        clientId,
+        structs[0]!.id.clock
+      )
+    })
+
+  writeDeleteSet(encoder, yUpdate.ds)
 
   return encoder.toUint8Array()
 }

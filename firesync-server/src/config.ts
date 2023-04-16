@@ -18,7 +18,11 @@ export const config = {
   },
   trustProxy: process.env.FS_TRUST_PROXY === 'true',
   host: process.env.FS_HOST || 'localhost',
-  port: parseInt(process.env.FS_PORT || '5000')
+  port: parseInt(process.env.FS_PORT || '5000'),
+
+  // Internal only, but can be updated for testing via debugRouter
+  packAfterNUpdates: 64,
+  waitSecondsBeforePacking: 60
 }
 
 export const getProjectConfig = async (_projectId: string) => {

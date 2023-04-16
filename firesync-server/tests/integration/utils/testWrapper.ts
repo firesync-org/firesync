@@ -53,8 +53,13 @@ export const testWrapper = function (
     }
 
     const cleanUp = async () => {
+      await server.setConfig({
+        // Reset to defaults
+        packAfterNUpdates: 64,
+        waitSecondsBeforePacking: 60
+      })
+      await server.acceptConnections()
       server.clients.forEach((client) => client.connection.disconnect())
-      server.acceptConnections()
     }
 
     try {

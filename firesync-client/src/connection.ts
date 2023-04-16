@@ -25,6 +25,7 @@ import {
   ErrorsByName,
   UnexpectedInternalStateError
 } from './shared/errors'
+import { packUpdates } from './shared/yUtils'
 import { Session } from './session'
 
 const logger = logging('connection')
@@ -36,6 +37,7 @@ export declare interface Connection {
     event: 'update',
     listener: (docKey: string, update: Uint8Array) => void
   ): this
+  on(event: 'updateAck', listener: (updateId: string) => void): this
 }
 
 const SECONDS = 1000
@@ -598,7 +600,7 @@ export class Connection extends EventEmitter {
     if (this.hasPendingUpdates && !this.hasInflightUpdates) {
       const updates = new Map(
         Array.from(this._pendingUpdates).map(([sessionDocId, updates]) => {
-          return [sessionDocId, Y.mergeUpdates(updates)]
+          return [sessionDocId, packUpdates(updates)]
         })
       )
       this._pendingUpdates = new Map()
@@ -622,6 +624,7 @@ export class Connection extends EventEmitter {
 
     if (this._inflightUpdateId === updateId) {
       this._inflightUpdateId = null
+      this.emit('updateAcked', updateId)
       // Send next batch of pending updates if present
       this.flushUpdates()
     } else {
