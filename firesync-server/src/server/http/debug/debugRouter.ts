@@ -3,7 +3,6 @@ import { requestHandler } from '../helpers/requestHandler'
 import { db } from '../../../db/db'
 import { UnexpectedInternalStateError } from '../../../shared/errors'
 import { docStore } from '../../lib/Docs/DocStore'
-import { storage } from '../../lib/Storage'
 import { webSockets } from '../../ws/WebSockets'
 import { tokens } from '../../models/tokens'
 import { BadRequestHttpError } from '../helpers/errors'
@@ -125,7 +124,7 @@ export const debugRouter = () => {
       const docId = await models.docs.getDocIdWithoutAuth(project.id, docKey)
 
       res.json({
-        updates: (await storage.getUpdates(docId)).map((buffer) =>
+        updates: (await models.updates.getUpdates(docId)).map((buffer) =>
           Array.from(buffer)
         )
       })

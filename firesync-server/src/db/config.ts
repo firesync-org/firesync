@@ -8,14 +8,7 @@ export const getKnexConfig = () => {
 
   return {
     client: 'postgres',
-    connection: {
-      database: postgres.database,
-      user: postgres.user,
-      password: postgres.password,
-      host: postgres.host,
-      port: postgres.port,
-      ssl: postgres.ssl
-    },
+    connection: postgres,
     pool: {
       min: 2,
       max: 10

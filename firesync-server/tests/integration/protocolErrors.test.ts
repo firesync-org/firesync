@@ -19,7 +19,7 @@ describe('Protocol Errors', () => {
         encodeMessage({
           messageType: MessageType.UPDATE,
           updateId: 42,
-          updates: new Map([[42, new Uint8Array()]])
+          updates: new Map([['42', new Uint8Array()]])
         })
       )
 
@@ -43,7 +43,7 @@ describe('Protocol Errors', () => {
       connection.send(
         encodeMessage({
           messageType: MessageType.SYNC_STATE_VECTOR,
-          sessionDocId: 42, // Doesn't exist
+          sessionDocId: '42', // Doesn't exist
           stateVector: new Uint8Array()
         })
       )

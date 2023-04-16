@@ -32,14 +32,14 @@ export const auth = {
     return userId
   },
 
-  async canReadDoc(userId: string, docId: number) {
+  async canReadDoc(userId: string, docId: string) {
     if (!userId) return false
     const role = await getRole(userId, docId)
     if (role === undefined) return false
     return READ_ROLES.includes(role)
   },
 
-  async canWriteDoc(userId: string, docId: number) {
+  async canWriteDoc(userId: string, docId: string) {
     if (!userId) return false
     const role = await getRole(userId, docId)
     if (role === undefined) return false
@@ -47,7 +47,7 @@ export const auth = {
   }
 }
 
-const getRole = async (userId: string, docId: number) => {
+const getRole = async (userId: string, docId: string) => {
   const role = await db
     .knex('doc_roles')
     .select('role')

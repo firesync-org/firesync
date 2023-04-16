@@ -78,7 +78,7 @@ export class WebSocketTransport extends EventEmitter {
   }
 
   private onMessage(data: RawData) {
-    this.connection.onMessage(data as Buffer, `external:ws:${this.id}`)
+    this.connection.onMessage(data as Buffer)
   }
 
   private onClose() {

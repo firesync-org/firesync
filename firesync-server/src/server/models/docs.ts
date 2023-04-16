@@ -1,5 +1,5 @@
 import { CannotAccessDocHttpError } from '../http/helpers/errors'
-import { Project, db } from '../../db/db'
+import { db } from '../../db/db'
 import { Role } from '../../shared/roles'
 import { roles } from './roles'
 
@@ -19,10 +19,9 @@ export const docs = {
     return docId
   },
 
-  async getDocIdWithoutAuth(projectId: string, docKey: string) {
-    const doc = await db.knex
+  async getDocIdWithoutAuth(projectId: string, docKey: string, txn = db.knex) {
+    const doc = await txn('docs')
       .select('id')
-      .from('docs')
       .where('project_id', projectId)
       .andWhere('key', docKey)
       .first()

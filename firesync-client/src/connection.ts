@@ -53,7 +53,7 @@ type DocState = {
   currentSubscriptionState: SubscriptionStates
   desiredSubscriptionState: SubscriptionStates
   sentInitialUpdate: boolean
-  sessionDocId?: number
+  sessionDocId?: string
 }
 
 export class Connection extends EventEmitter {
@@ -229,7 +229,7 @@ export class Connection extends EventEmitter {
   // for specific docs to avoid sending the entire doc name with each
   // small update. We get assigned a session id for each doc from the
   // server, and track the mapping here as in this.docs.sessionDocId
-  private docKeysByDocIds: Record<number, string> = {}
+  private docKeysByDocIds: Record<string, string> = {}
   private resetSubscribedDocs() {
     this.docKeysByDocIds = {}
     this.docs.forEach((doc) => {
@@ -544,7 +544,7 @@ export class Connection extends EventEmitter {
     return this.docs.get(docKey)?.sentInitialUpdate === true
   }
 
-  private _pendingUpdates = new Map<number, Uint8Array[]>()
+  private _pendingUpdates = new Map<string, Uint8Array[]>()
   private _inflightUpdateId: number | null = null
 
   get hasPendingUpdates() {

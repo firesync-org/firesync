@@ -23,6 +23,7 @@ import { auth } from './auth'
 import { logging } from '../lib/Logging/Logger'
 import EventEmitter from 'events'
 import { WebSocketTransport } from './WebSockets'
+import models from '../models'
 
 const logger = logging.child('connection')
 
@@ -30,18 +31,22 @@ export declare interface Connection {
   on(event: 'error', listener: (error: Error) => void): this
   on(
     event: 'subscribe',
-    listener: (docKey: string, docId: number) => void
+    listener: (docKey: string, docId: string) => void
   ): this
 }
 
+const HOST_ID = `${Date.now()}:${Math.floor(
+  Math.random() * 1_000_000_000
+).toString()}`
+
 export class Connection extends EventEmitter {
-  id: number
   static nextId = 0
   ws: WebSocketTransport
-  docKeysByDocIds = new Map<number, string>()
-  docIdsByDocKeys = new Map<string, number>()
+  docKeysByDocIds = new Map<string, string>()
+  docIdsByDocKeys = new Map<string, string>()
   userId: string
   projectId: string
+  id: string
 
   constructor(options: {
     ws: WebSocketTransport
@@ -52,10 +57,10 @@ export class Connection extends EventEmitter {
     this.ws = options.ws
     this.userId = options.userId
     this.projectId = options.projectId
-    this.id = Connection.nextId++
+    this.id = `conn:${HOST_ID}:${Connection.nextId++}`
   }
 
-  async onMessage(data: Buffer, source: string) {
+  async onMessage(data: Buffer) {
     let message: Message
     try {
       message = decodeMessage(new Uint8Array(data as Buffer))
@@ -75,7 +80,7 @@ export class Connection extends EventEmitter {
         await this.handleIncomingStateVector(message)
         break
       case MessageType.UPDATE:
-        await this.handleIncomingUpdates(message, source)
+        await this.handleIncomingUpdates(message, this.id)
         break
       default:
         this.handleError(
@@ -87,15 +92,14 @@ export class Connection extends EventEmitter {
   async handleIncomingSubscribeRequest({ docKey }: SubscribeRequestMessage) {
     logger.debug({ docKey }, 'handleIncomingSubscribeRequest')
 
-    const docIdString = await docStore.getDocId(this.projectId, docKey)
-    if (docIdString === undefined) {
+    const docId = await models.docs.getDocIdWithoutAuth(this.projectId, docKey)
+    if (docId === undefined) {
       const error = new AuthError(
         `Not authorized to read doc, or doc does not exist: ${docKey}`
       )
       this.sendSubscribeError(docKey, error.name, error.message)
       return
     }
-    const docId = parseInt(docIdString)
 
     if (this.docKeysByDocIds.has(docId)) {
       // We could just ignore a client trying to subscribe to the same doc twice
@@ -110,7 +114,7 @@ export class Connection extends EventEmitter {
     if (canReadDoc) {
       this.docKeysByDocIds.set(docId, docKey)
       this.docIdsByDocKeys.set(docKey, docId)
-      Connection.saveConnectionByDocId(docId, this)
+      await Connection.saveConnectionByDocId(docId, this)
       this.sendSubscribeResponse(docKey, docId)
     } else {
       const error = new AuthError(
@@ -120,7 +124,7 @@ export class Connection extends EventEmitter {
     }
   }
 
-  async sendSubscribeResponse(docKey: string, docId: number) {
+  async sendSubscribeResponse(docKey: string, docId: string) {
     logger.debug({ docKey }, 'sendSubscribeResponse')
 
     this.ws.send(
@@ -160,12 +164,12 @@ export class Connection extends EventEmitter {
     }
     this.docIdsByDocKeys.delete(docKey)
     this.docKeysByDocIds.delete(docId)
-    Connection.removeConnectionFromDocId(docId, this)
+    await Connection.removeConnectionFromDocId(docId, this)
 
     await this.sendUnsubscribeResponse(docId)
   }
 
-  async sendUnsubscribeResponse(docId: number) {
+  async sendUnsubscribeResponse(docId: string) {
     logger.debug({ docId }, 'sendUnsubscribeResponse')
 
     this.ws.send(
@@ -177,7 +181,7 @@ export class Connection extends EventEmitter {
   }
 
   async sendUnsubscribeError(
-    docId: number,
+    docId: string,
     errorType: string,
     errorMessage: string
   ) {
@@ -199,7 +203,7 @@ export class Connection extends EventEmitter {
     this.ws.send(
       encodeMessage({
         messageType: MessageType.SYNC_STATE_VECTOR,
-        sessionDocId: parseInt(docId),
+        sessionDocId: docId,
         stateVector: Y.encodeStateVector(sv)
       })
     )
@@ -228,7 +232,7 @@ export class Connection extends EventEmitter {
     this.sendStateVector(docId.toString())
   }
 
-  async sendUpdate(docId: number, update: Uint8Array) {
+  async sendUpdate(docId: string, update: Uint8Array) {
     logger.debug({ docId, update }, 'sendUpdate')
 
     const updates = new Map([[docId, update]])
@@ -297,7 +301,7 @@ export class Connection extends EventEmitter {
   }
 
   async sendErrorResync(
-    docId: number,
+    docId: string,
     errorType: string,
     errorMessage: string
   ) {
@@ -335,7 +339,7 @@ export class Connection extends EventEmitter {
     return docId
   }
 
-  private getDocKeyFromDocIdOrError(docId: number) {
+  private getDocKeyFromDocIdOrError(docId: string) {
     const docKey = this.docKeysByDocIds.get(docId)
     if (docKey === undefined) {
       const error = new BadRequestError(
@@ -361,38 +365,46 @@ export class Connection extends EventEmitter {
   // eslint-disable-next-line no-use-before-define
   static connectionsByDocId: Record<string, Connection[]> = {}
 
-  static saveConnectionByDocId(docId: number, conn: Connection) {
+  static async saveConnectionByDocId(docId: string, conn: Connection) {
     if (!(this.connectionsByDocId[docId] instanceof Array)) {
       this.connectionsByDocId[docId] = []
     }
     this.connectionsByDocId[docId]!.push(conn)
+
+    await docStore.subscribe(docId)
   }
 
-  static removeConnectionFromDocId(docId: number, conn: Connection) {
+  static async removeConnectionFromDocId(docId: string, conn: Connection) {
     logger.debug({ docId }, 'removeConnectionFromDocName')
     this.connectionsByDocId[docId] = (
       this.connectionsByDocId[docId] || []
     ).filter((c) => c !== conn)
+
+    if (this.connectionsByDocId[docId]!.length === 0) {
+      await docStore.unsubscribe(docId)
+    }
   }
 
   static listenForDocUpdates() {
     docStore.on(
       'update',
-      (docId: number, update: Uint8Array, source: string) => {
-        const connections = this.connectionsByDocId[docId] || []
-        for (const conn of connections) {
-          const originatedFromConn = source === `external:ws:${conn.id}`
-          if (!originatedFromConn) {
-            conn.sendUpdate(docId, update)
-          }
+      async (docId: string, dbUpdateId: string, source: string) => {
+        const connections = (this.connectionsByDocId[docId] || []).filter(
+          (conn) => source !== conn.id
+        )
+        // If we only have the originating connection connected, don't bother
+        // looking up the update - they already have it and we've acked it
+        if (connections.length > 0) {
+          const update = await models.updates.getUpdateById(docId, dbUpdateId)
+          connections.forEach((conn) => conn.sendUpdate(docId, update))
         }
       }
     )
 
-    docStore.on('error', (docId: number, error: Error, source: string) => {
+    docStore.on('error', (docId: string, error: Error, source: string) => {
       const connections = this.connectionsByDocId[docId] || []
       for (const conn of connections) {
-        const originatedFromConn = source === `external:ws:${conn.id}`
+        const originatedFromConn = source === conn.id
         if (originatedFromConn) {
           conn.sendErrorResync(docId, error.name, error.message)
         }

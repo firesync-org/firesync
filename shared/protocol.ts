@@ -6,7 +6,7 @@
 import { decoding, encoding } from 'lib0'
 import { BadRequestError } from './errors'
 
-type SessionDocId = number
+type SessionDocId = string
 type YjsUpdate = Uint8Array
 type YjsStateVector = Uint8Array
 
@@ -128,7 +128,7 @@ export const decodeMessage = (message: Uint8Array): Message => {
     }
     case MessageType.SUBSCRIBE_RESPONSE: {
       const docKey = decoding.readVarString(decoder)
-      const sessionDocId = decoding.readVarUint(decoder)
+      const sessionDocId = decoding.readVarString(decoder)
       return {
         messageType,
         docKey,
@@ -147,21 +147,21 @@ export const decodeMessage = (message: Uint8Array): Message => {
       }
     }
     case MessageType.UNSUBSCRIBE_REQUEST: {
-      const sessionDocId = decoding.readVarUint(decoder)
+      const sessionDocId = decoding.readVarString(decoder)
       return {
         messageType,
         sessionDocId
       }
     }
     case MessageType.UNSUBSCRIBE_RESPONSE: {
-      const sessionDocId = decoding.readVarUint(decoder)
+      const sessionDocId = decoding.readVarString(decoder)
       return {
         messageType,
         sessionDocId
       }
     }
     case MessageType.UNSUBSCRIBE_ERROR: {
-      const sessionDocId = decoding.readVarUint(decoder)
+      const sessionDocId = decoding.readVarString(decoder)
       const errorType = decoding.readVarString(decoder)
       const errorMessage = decoding.readVarString(decoder)
       return {
@@ -172,7 +172,7 @@ export const decodeMessage = (message: Uint8Array): Message => {
       }
     }
     case MessageType.SYNC_STATE_VECTOR: {
-      const sessionDocId = decoding.readVarUint(decoder)
+      const sessionDocId = decoding.readVarString(decoder)
       const stateVector = decoding.readVarUint8Array(decoder)
       return {
         messageType,
@@ -185,7 +185,7 @@ export const decodeMessage = (message: Uint8Array): Message => {
       const updatesSize = decoding.readVarUint(decoder)
       const updates = new Map<SessionDocId, YjsUpdate>()
       for (let i = 0; i < updatesSize; i++) {
-        const sessionDocId = decoding.readVarUint(decoder)
+        const sessionDocId = decoding.readVarString(decoder)
         const update = decoding.readVarUint8Array(decoder)
         updates.set(sessionDocId, update)
       }
@@ -214,7 +214,7 @@ export const decodeMessage = (message: Uint8Array): Message => {
       }
     }
     case MessageType.ERROR_RESYNC: {
-      const sessionDocId = decoding.readVarUint(decoder)
+      const sessionDocId = decoding.readVarString(decoder)
       const errorType = decoding.readVarString(decoder)
       const errorMessage = decoding.readVarString(decoder)
       return {
@@ -249,7 +249,7 @@ export const encodeMessage = (message: Message): Uint8Array => {
     }
     case MessageType.SUBSCRIBE_RESPONSE: {
       encoding.writeVarString(encoder, message.docKey)
-      encoding.writeVarUint(encoder, message.sessionDocId)
+      encoding.writeVarString(encoder, message.sessionDocId)
       break
     }
     case MessageType.SUBSCRIBE_ERROR: {
@@ -259,21 +259,21 @@ export const encodeMessage = (message: Message): Uint8Array => {
       break
     }
     case MessageType.UNSUBSCRIBE_REQUEST: {
-      encoding.writeVarUint(encoder, message.sessionDocId)
+      encoding.writeVarString(encoder, message.sessionDocId)
       break
     }
     case MessageType.UNSUBSCRIBE_RESPONSE: {
-      encoding.writeVarUint(encoder, message.sessionDocId)
+      encoding.writeVarString(encoder, message.sessionDocId)
       break
     }
     case MessageType.UNSUBSCRIBE_ERROR: {
-      encoding.writeVarUint(encoder, message.sessionDocId)
+      encoding.writeVarString(encoder, message.sessionDocId)
       encoding.writeVarString(encoder, message.errorType)
       encoding.writeVarString(encoder, message.errorMessage)
       break
     }
     case MessageType.SYNC_STATE_VECTOR: {
-      encoding.writeVarUint(encoder, message.sessionDocId)
+      encoding.writeVarString(encoder, message.sessionDocId)
       encoding.writeVarUint8Array(encoder, message.stateVector)
       break
     }
@@ -281,7 +281,7 @@ export const encodeMessage = (message: Message): Uint8Array => {
       encoding.writeVarUint(encoder, message.updateId)
       encoding.writeVarUint(encoder, message.updates.size)
       message.updates.forEach((update, sessionDocId) => {
-        encoding.writeVarUint(encoder, sessionDocId)
+        encoding.writeVarString(encoder, sessionDocId)
         encoding.writeVarUint8Array(encoder, update)
       })
       break
@@ -297,7 +297,7 @@ export const encodeMessage = (message: Message): Uint8Array => {
       break
     }
     case MessageType.ERROR_RESYNC: {
-      encoding.writeVarUint(encoder, message.sessionDocId)
+      encoding.writeVarString(encoder, message.sessionDocId)
       encoding.writeVarString(encoder, message.errorType)
       encoding.writeVarString(encoder, message.errorMessage)
       break
