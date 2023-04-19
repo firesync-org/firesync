@@ -104,9 +104,11 @@ export const googleAuthController = {
     loadGoogleStrategyForProject({ failureRedirect: '/login', session: false }),
     requestHandler(async (req, res) => {
       const project = await models.projects.getProjectFromRequest(req)
+
       const {
         googleAuth: { successRedirectUrl }
       } = await getProjectConfig(project.id)
+
       const userId = req.user?.userId
       if (userId === undefined) {
         throw new UnexpectedInternalStateError('Expected userId')

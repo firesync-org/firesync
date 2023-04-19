@@ -94,6 +94,19 @@ export type RefreshToken = {
   updated_at: Date
 }
 
+export type ProjectConfig = {
+  id: string // bigint is returned as a string
+  host: string
+  fs_cors_allowed_origins: string
+  fs_redeem_invite_url: string
+  fs_google_auth_client_id: string
+  fs_google_auth_client_secret: string
+  fs_google_auth_success_redirect_url: string
+  project_id: string
+  created_at: string
+  updated_at: string
+}
+
 declare module 'knex/types/tables' {
   interface Tables {
     docs: Doc
@@ -105,6 +118,7 @@ declare module 'knex/types/tables' {
     invite_tokens: InviteToken
     access_tokens: AccessToken
     refresh_tokens: RefreshToken
+    project_configs: ProjectConfig
   }
 }
 

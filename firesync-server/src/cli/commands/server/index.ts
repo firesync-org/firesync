@@ -3,7 +3,7 @@ import { Command, Flags } from '@oclif/core'
 import { FiresyncServer } from '../../../server'
 
 import { logging } from '../../../server/lib/Logging/Logger'
-import { config } from '../../../config'
+import { config, getProjectConfig } from '../../../config'
 
 const logger = logging.child('cli')
 
