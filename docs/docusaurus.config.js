@@ -64,7 +64,10 @@ const config = {
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    ({
+    ({      
+      colorMode: {
+        defaultMode: 'dark',
+      },
       announcementBar: {
         id: 'wip',
         content: '⚠️ These docs are a work in progress',
