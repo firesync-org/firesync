@@ -12,8 +12,7 @@ FireSync is a complete backend for building a real-time collaborative app. You c
 
 * **🚀 Real-time collaboration via [Yjs](https://github.com/yjs/yjs)**
 * **🗄️ [Postgres](https://www.postgresql.org/) backed storage**
-* **🧑 User management**
-* **🔓 Role based permissions**
+* **🔓 Role based document permissions**
 * **📧 Email invites to join docs (coming soon)**
 * **👥 Teams, groups and anonymous access (coming soon)**
 * **👀 Online indicators and user cursors (coming soon)**
@@ -23,7 +22,7 @@ FireSync is a complete backend for building a real-time collaborative app. You c
 * **💡 Suggesting mode and track changes (coming soon)**
 * **🔔 Notifications for changes and comments (coming soon)**
 
-All of this is available out of the box, or you can use your own backend and just pick and choose which parts of FireSync you'd like to use.
+All of this is available out of the box, or you can pick and choose which parts of FireSync you'd like to use.
 
 ## 📢 Stay up to date
 
@@ -33,7 +32,7 @@ All of this is available out of the box, or you can use your own backend and jus
 
 See [https://docs.firesync.dev/](https://docs.firesync.dev/) for a complete documentation guide. Or dive straight into:
 
-* [Tutorial](https://docs.firesync.dev//tutorials/) - Start here if it's your first time with FireSync to get an understanding of how it all works.
+* [Quick Start](https://docs.firesync.dev/quick-start) - One page quick start guide to get you going.
 * [Guides](https://docs.firesync.dev/category/guides) - In depth guides on how to do specific things with FireSync.
 * [Reference](https://docs.firesync.dev/category/reference) - Complete reference guides for the FireSync libraries with API specs.
 
@@ -72,150 +71,102 @@ $ npx @firesync/server server
 
 FireSync will be running at [localhost:5000](http://localhost:5000).
 
-### User authentication
+## Authentication
 
-To allow users to log in via Google Oauth, [create some Google OAuth Client Id credentials](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and configure them for your project with the `FS_GOOGLE_AUTH_CLIENT_ID` and `FS_GOOGLE_AUTH_CLIENT_SECRET` environment variables. You'll need to specify `https://localhost:5000/auth/google/callback` as an 'Authorized redirect URI' for the OAuth credentials.
+Your backend should sign a [JSON Web Token (JWT)](https://en.wikipedia.org/wiki/JSON_Web_Token) for your client to pass to FireSync for access:
 
-```
-$ export FS_GOOGLE_AUTH_CLIENT_ID=...
-$ export FS_GOOGLE_AUTH_CLIENT_SECRET=...
-```
+```js
+import jwt from 'jsonwebtoken';
 
-### Building your app
+const payload = {
+  docs: {
+    // Grant write access to the document called 'foo' and readonly access to 'bar'
+    'foo': 'write',
+    'bar': 'read'
+  }
+};
 
-We'll demonstrate how to build a very simple collaborative React app using FireSync as our backend. First create a new React app (see [React docs](https://reactjs.org/docs/create-a-new-react-app.html) for more info):
+// Configure your secret via FS_JWT_AUTH_SECRET in firesync-server,
+// or find it in your project settings for FireSync Cloud
+const secret = '/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc';
 
-```bash
-$ npx create-react-app acme-frontend
-$ cd acme-frontend
-$ npm start
-```
-
-Configure the server to redirect back to your app after authenticating with Google with the `FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL` environment variable:
-
-```sh
-$ export FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL=http://localhost:3000
+// Pass token to your client
+const token = jwt.sign(payload, secret);
 ```
 
-Install `@firesync/client`:
+See the [Authentication Guide](https://docs.firesync.dev/guides/authentication) for more details
 
-```bash
-$ npm install @firesync/client
-```
+## Syncing Changes
 
-#### Configure Client
+If we pass our JWT from above into the FireSync client, we will be able subscribe to the document called 'foo', and any edits we make will be immediately synced to any other clients subscribed to 'foo':
 
-Configure FireSync to point to our back-end:
-
-```ts
-import Firesync from 'firesync-client'
-const firesync = new Firesync({
-  host: 'http://localhost:5000'
+```js
+import FireSync from '@firesync/client'
+const firesync = new FireSync({
+  baseUrl: 'http://localhost:5000', // The URL where firesync-server is running
+  token: token // Generated above
 })
-```
 
-#### Authentication
+const doc = firesync.subscribe('foo')
 
-We can check if the user logged in, and display either a logged in or logged out button. See [LoginWrapper](https://github.com/firesync-org/firesync/blob/main/examples/playground/src/LoginWrapper.tsx) in the `examples/playground/` folder for a more detailed example.
-
-```tsx
-export default function Login() {
-  const [loggedIn, setLoggedIn] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    firesync.isLoggedIn().then((loggedIn) => {
-      setLoggedIn(loggedIn)
-      setLoading(false)
-    })
-  }, [])
-
-  const logIn = (provider: string) => {
-    // Will redirect to the FireSync server to start the Google
-    // OAuth flow
-    firesync.logIn({ provider })
-  }
-
-  const logOut = async () => {
-    await firesync.logOut()
-    setLoggedIn(false)
-  }
-
-  if (loading) {
-    return <div>Loading...</div>
-  } else if (loggedIn) {
-    return <button onClick={() => logOut()}>Log Out</button>
-  } else {
-    return <button onClick={() => logIn('google')}>Log in with Google</button>
-  }
-}
-
-```
-
-#### List and Creating Documents
-
-Once the user is logged in you can list the docs the user has access to:
-
-```tsx
-firesync.getUserRoles().then(({ user: { roles } }) => {
-  console.log('You can access the following documents:', roles.map((r) => r.docKey))
+// Get a real-time map that we can set key, value pairs in
+const map = doc.getMap('bar') 
+map.on('update', () => {
+  // Triggered on either local updates, or updates from other clients
+  console.log('Map was updated: ', map.toJSON())
 })
+
+// Set some values locally that will be synced to all clients
+map.set('name', 'Bob')
+map.set('age', 42)
+map.set('awesome', true)
 ```
 
-And create a new collaborative document:
+The `doc` returned by `firesync.subscribe` is a [Yjs](https://docs.firesync.dev/guides/yjs) doc that supports complex data structures with nested maps, lists and rich-text types.
 
-```ts
-firesync.createDoc('foo')
-  .then(() => { console.log('successfully created foo!') })
-```
+## Collaborative Rich-Text Editing
 
-See [DocsList](https://github.com/firesync-org/firesync/blob/main/examples/playground/src/DocsList.tsx) in the `examples/playground/` folder for a more detailed example.
+You can bind the FireSync Yjs doc to various text editors to create a real-time collaborative rich-text editor. We'll use the [Quill] editor for our example below
 
-#### Collaborative Editing
 
-The bit you've been waiting for! Once you have a user and a doc, you can subscribe to it to get a local [Yjs doc](https://github.com/yjs/yjs) which will sync any changes to the FireSync back-end and recieve any changes from other users.
-
-```ts
-const ydoc = firesync.connection.subscribe('foo')
-```
-
-Here is an example that binds ths FireSync Yjs doc to the [Quill](https://github.com/quilljs/quill) rich-text editor, for real-time collaboration of rich-text documents:
-
-```tsx
-// You will need to npm install --save react-quill y-quill
-import React, { useEffect, useRef } from 'react'
+```js
+import { FireSync } from '@firesync/client'
 import ReactQuill from 'react-quill'
 import { QuillBinding } from 'y-quill'
 import 'react-quill/dist/quill.snow.css'
 
-function Editor() {
+const firesync = new FireSync({
+  // A JWT access token signed by your backend
+  token: '<your-token>',
+  // The host and port of your firesync-server instance
+  baseUrl: 'http://localhost:5000',
+})
+
+function CollaborativeQuillEditor() {
   const quillRef = useRef<ReactQuill | null>(null)
 
-  useEffect(() => {
-    // Subscribe to the 'foo' doc we created above. Any local updates
-    // to this ydoc will be sent to the server, and any updates from 
-    // other users will also get synced to this ydoc
-    const ydoc = firesync.connection.subscribe('foo')
+  // Doc key to sync with FireSync
+  const docKey = 'quill-example'
 
-    // Bind the ydoc to the Quill editor
-    const quill = quillRef.current?.editor
-    const binding = new QuillBinding(ydoc.getText('text'), quill)
+  useEffect(() => {
+    // Subscribe to the document. Any local updates to this doc
+    // will be sent to the server, and any updates from
+    // other users will also get synced to this doc
+    const doc = firesync.subscribe(docKey)
+
+    // Bind the doc to the Quill editor
+    const quill = quillRef.current.editor
+    const binding = new QuillBinding(doc.getText('t'), quill)
 
     // Tidy up everything on unmount
     return () => {
-      firesync.connection.unsubscribe(docKey)
+      firesync.unsubscribe(docKey)
       binding.destroy()
     }
   }, [])
 
-  return (
-    <>
-      <div className="bg-white">
-        <ReactQuill theme="snow" ref={quillRef} />
-      </div>
-    </>
-  )
+  return <ReactQuill theme="snow" ref={quillRef} />
 }
 ```
 
-See [Editor](https://github.com/firesync-org/firesync/blob/main/examples/playground/src/Editor.tsx) in the `examples/playground/` folder for a more detailed example.
+See [Rich Text Collaboration](https://docs.firesync.dev/category/rich-text-collaboration) in our docs in for more examples.

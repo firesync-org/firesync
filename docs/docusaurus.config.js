@@ -1,57 +1,65 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require("prism-react-renderer/themes/github");
-const darkCodeTheme = require("prism-react-renderer/themes/dracula");
+const lightCodeTheme = require('prism-react-renderer/themes/github')
+const darkCodeTheme = require('prism-react-renderer/themes/dracula')
+require('dotenv').config()
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "FireSync Docs",
-  tagline: "PaaS for real-time collaborative apps",
-  url: "https://docs.firesync.dev",
-  baseUrl: "/",
-  onBrokenLinks: "warn",
-  onBrokenMarkdownLinks: "warn",
-  favicon: "img/favicon.png",
+  title: 'FireSync Docs',
+  tagline: 'PaaS for real-time collaborative apps',
+  url: 'https://docs.firesync.dev',
+  baseUrl: '/',
+  onBrokenLinks: 'warn',
+  onBrokenMarkdownLinks: 'warn',
+  favicon: 'img/favicon.png',
+
+  customFields: {
+    firesyncToken: process.env.FS_TOKEN,
+    firesyncBaseUrl: process.env.FS_BASE_URL
+  },
 
   // Even if you don't use internalization, you can use this field to set useful
   // metadata like html lang. For example, if your site is Chinese, you may want
   // to replace "en" with "zh-Hans".
   i18n: {
-    defaultLocale: "en",
-    locales: ["en"],
+    defaultLocale: 'en',
+    locales: ['en']
   },
 
   presets: [
     [
-      "classic",
+      'classic',
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          sidebarPath: require.resolve("./sidebars.js"),
-          routeBasePath: "/",
+          sidebarPath: require.resolve('./sidebars.js'),
+          routeBasePath: '/',
+          sidebarCollapsible: false
         },
         blog: {
-          showReadingTime: true,
+          showReadingTime: true
         },
         theme: {
-          customCss: require.resolve("./src/css/custom.css"),
-        },
-      }),
+          customCss: require.resolve('./src/css/custom.css')
+        }
+      })
     ],
 
     [
-      "redocusaurus",
+      'redocusaurus',
       {
         // Plugin Options for loading OpenAPI files
         specs: [
           {
-            spec: "../firesync-server/openapi.json",
-            route: "/api/",
-          },
-        ],
-      },
-    ],
+            spec: '../firesync-server/openapi.json',
+            route: '/api/'
+          }
+        ]
+      }
+    ]
   ],
 
   themeConfig:
@@ -59,81 +67,76 @@ const config = {
     ({
       announcementBar: {
         id: 'wip',
-        content:
-          '⚠️ These docs are a work in progress',
+        content: '⚠️ These docs are a work in progress',
         backgroundColor: '#cdb6f8',
-        isCloseable: false,
+        isCloseable: false
       },
       navbar: {
-        title: "FireSync",
+        title: 'FireSync',
         logo: {
-          src: "img/logo.png",
+          src: 'img/logo.png'
         },
         items: [
           {
-            type: "doc",
-            docId: "intro",
-            position: "left",
-            label: "Docs",
+            type: 'doc',
+            docId: 'quick-start',
+            position: 'left',
+            label: 'Docs'
           },
           {
-            href: "https://github.com/firesync-org/firesync",
-            label: "GitHub",
-            position: "right",
+            href: 'https://github.com/firesync-org/firesync',
+            label: 'GitHub',
+            position: 'right'
           },
           {
-            href: "https://www.firesync.cloud",
-            label: "FireSync Cloud",
-            position: "right",
-          },
-        ],
+            href: 'https://www.firesync.cloud',
+            label: 'FireSync Cloud',
+            position: 'right'
+          }
+        ]
       },
       footer: {
-        style: "dark",
+        style: 'dark',
         links: [
           {
-            title: "Docs",
+            title: 'Docs',
             items: [
               {
-                label: "Tutorial",
-                to: "/tutorials",
+                label: 'Guides',
+                to: '/category/guides'
               },
               {
-                label: "Guides",
-                to: "/category/guides",
-              },
-              {
-                label: "Reference",
-                to: "/category/reference",
-              },
-            ],
+                label: 'Reference',
+                to: '/category/reference'
+              }
+            ]
           },
           {
-            title: "Community",
+            title: 'Community',
             items: [
               {
-                label: "Twitter",
-                href: "https://twitter.com/firesyncapp",
-              },
-            ],
+                label: 'Twitter',
+                href: 'https://twitter.com/firesyncapp'
+              }
+            ]
           },
           {
-            title: "More",
+            title: 'More',
             items: [
               {
-                label: "GitHub",
-                href: "https://github.com/firesyncorg/firesync",
-              },
-            ],
-          },
+                label: 'GitHub',
+                href: 'https://github.com/firesyncorg/firesync'
+              }
+            ]
+          }
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} FireSync.`,
+        copyright: `Copyright © ${new Date().getFullYear()} FireSync.`
       },
       prism: {
         theme: lightCodeTheme,
-        darkTheme: darkCodeTheme,
-      },
-    }),
-};
+        darkTheme: darkCodeTheme
+      }
+    })
+}
 
-module.exports = config;
+module.exports = config

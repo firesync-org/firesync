@@ -9,7 +9,6 @@ export const projects = {
   async getProjectFromRequest(req: IncomingMessage) {
     let project
     if (process.env.FS_MULTI_PROJECT === 'true') {
-      console.log('getting project from request headers')
       const hostname = getHostName(req)
 
       project = await db
@@ -23,7 +22,6 @@ export const projects = {
         )
       }
     } else {
-      console.log('defaulting to first project')
       project = await db.knex('projects').select('id').first()
 
       if (project === undefined) {

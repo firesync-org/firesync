@@ -2,19 +2,14 @@
 
 import { expect } from 'chai'
 import { Y } from '@firesync/client'
-import { tryUntil, testWrapper, getClient } from './utils'
+import { tryUntil, testWrapper } from './utils'
 
 describe('Server Syncing', () => {
   test(
     'client needs the entire doc',
     testWrapper(
       {},
-      async ({
-        docKey,
-        client: { connection: connection1, session },
-        server,
-        ydoc: ydoc1
-      }) => {
+      async ({ docKey, client: client1, server, ydoc: ydoc1, token }) => {
         // Set up 2 docs with content in sync
         const yText1 = ydoc1.getText('t')
         yText1.insert(0, 'foobaz')
@@ -26,18 +21,13 @@ describe('Server Syncing', () => {
         })
 
         const ydoc2 = new Y.Doc()
-        const { connection: connection2 } = getClient({
-          session
-        })
-        connection2.subscribe(docKey, ydoc2)
+        const client2 = server.getClient({ token })
+        client2.subscribe(docKey, ydoc2)
 
         const yText2 = ydoc2.getText('t')
         await tryUntil(async () => {
           expect(yText2.toString()).to.equal('foobarbaz')
         })
-
-        connection1.disconnect()
-        connection2.disconnect()
       }
     )
   )
@@ -46,12 +36,7 @@ describe('Server Syncing', () => {
     'should handle the client needing a partial set of updates',
     testWrapper(
       {},
-      async ({
-        docKey,
-        client: { connection: connection1, session },
-        server,
-        ydoc: ydoc1
-      }) => {
+      async ({ docKey, client: client1, server, ydoc: ydoc1, token }) => {
         // Set up 2 docs with content in sync
         const ydoc2 = new Y.Doc()
         const yText1 = ydoc1.getText('t')
@@ -71,17 +56,15 @@ describe('Server Syncing', () => {
         expect(yText2.toString()).to.equal('foo')
 
         // subscribe to doc 2
-        const { connection: connection2 } = getClient({
-          session
-        })
+        const client2 = server.getClient({ token })
 
         const receivedUpdate = new Promise<Uint8Array>((resolve) => {
-          connection2.on('update', (docKey, update) => {
+          client2.on('update', (docKey, update) => {
             resolve(update)
           })
         })
 
-        connection2.subscribe(docKey, ydoc2)
+        client2.subscribe(docKey, ydoc2)
 
         // Check that recieved update only contains 'bar'
         const update = Y.decodeUpdate(await receivedUpdate)
@@ -95,68 +78,62 @@ describe('Server Syncing', () => {
           expect(yText2.toString()).to.equal('foobar')
         })
 
-        // Make some changes to doc2 while connection1 is disconnected to test the
-        // resyncing going the other way with client ids connection1 doesn't know about
-        connection1.disconnect()
+        // Make some changes to doc2 while client1 is disconnected to test the
+        // resyncing going the other way with client ids client1 doesn't know about
+        client1.disconnect()
         await tryUntil(async () => {
-          expect(connection1.connected).to.equal(false)
+          expect(client1.connected).to.equal(false)
         })
         yText2.insert(6, 'zip')
 
-        connection1.connect()
+        client1.connect()
         await tryUntil(async () => {
           expect(yText1.toString()).to.equal('foobarzip')
         })
-
-        connection1.disconnect()
-        connection2.disconnect()
       }
     )
   )
 
   test(
     'client is up to date',
-    testWrapper(
-      {},
-      async ({ docKey, client: { connection }, server, ydoc }) => {
-        const yText = ydoc.getText('t')
-        yText.insert(0, 'foo')
+    testWrapper({}, async ({ docKey, client, server, ydoc }) => {
+      const yText = ydoc.getText('t')
+      yText.insert(0, 'foo')
 
-        await tryUntil(async () => {
-          const sv = await server.getDocStateVector(docKey)
-          expect(sv[ydoc.clientID]).to.equal(3)
+      await tryUntil(async () => {
+        const sv = await server.getDocStateVector(docKey)
+        expect(sv[ydoc.clientID]).to.equal(3)
+      })
+
+      client.disconnect()
+
+      const receivedUpdate = new Promise<Uint8Array>((resolve) => {
+        client.on('update', (docKey, update) => {
+          resolve(update)
         })
+      })
 
-        connection.disconnect()
+      client.connect()
 
-        const receivedUpdate = new Promise<Uint8Array>((resolve) => {
-          connection.on('update', (docKey, update) => {
-            resolve(update)
-          })
-        })
+      const update = await receivedUpdate
+      const { structs } = Y.decodeUpdate(update)
 
-        connection.connect()
-
-        const update = await receivedUpdate
-        const { structs } = Y.decodeUpdate(update)
-
-        expect(structs).to.have.length(0)
-      }
-    )
+      expect(structs).to.have.length(0)
+    })
   )
 
   test(
     'client sending updates the server already has',
     testWrapper(
       { connect: false },
-      async ({ docKey, client: { connection }, server, ydoc }) => {
+      async ({ docKey, client, server, ydoc }) => {
         // Set up some content
         const yText = ydoc.getText('t')
         yText.insert(0, 'foo')
         yText.insert(0, 'bar')
 
-        connection.connect()
-        connection.subscribe(docKey, ydoc)
+        client.connect()
+        client.subscribe(docKey, ydoc)
 
         await tryUntil(async () => {
           const sv = await server.getDocStateVector(docKey)
@@ -164,11 +141,11 @@ describe('Server Syncing', () => {
         })
 
         // Don't send the next set of updates immediately
-        connection.chaosMonkey.ignoreUpdatesFromDocs.add(docKey)
+        client.chaosMonkey.ignoreUpdatesFromDocs.add(docKey)
         yText.insert(3, 'baz')
 
         // Send updates to client again including new
-        connection.sendUpdate(docKey, Y.encodeStateAsUpdate(ydoc))
+        client.sendUpdate(docKey, Y.encodeStateAsUpdate(ydoc))
 
         await tryUntil(async () => {
           const sv = await server.getDocStateVector(docKey)
@@ -193,8 +170,6 @@ describe('Server Syncing', () => {
         expect(
           ((updates[1]!.structs[0] as Y.Item).content as Y.ContentString).str
         ).to.equal('baz')
-
-        connection.disconnect()
       }
     )
   )
@@ -203,13 +178,13 @@ describe('Server Syncing', () => {
     'client sends updates that do not match the current state vector',
     testWrapper(
       { connect: false },
-      async ({ docKey, client: { connection }, server, ydoc }) => {
+      async ({ docKey, client, server, ydoc }) => {
         // Set up some content
         const yText = ydoc.getText('t')
         yText.insert(0, 'foo')
 
-        connection.connect()
-        connection.subscribe(docKey, ydoc)
+        client.connect()
+        client.subscribe(docKey, ydoc)
 
         await tryUntil(async () => {
           const sv = await server.getDocStateVector(docKey)
@@ -217,11 +192,11 @@ describe('Server Syncing', () => {
         })
 
         // Don't send the next set of updates immediately
-        connection.chaosMonkey.ignoreUpdatesFromDocs.add(docKey)
+        client.chaosMonkey.ignoreUpdatesFromDocs.add(docKey)
 
-        // Prevent connection from reconnecting and sending
+        // Prevent client from reconnecting and sending
         // full update on error
-        connection.reconnect = () => {
+        client.reconnect = () => {
           return null
         }
 
@@ -231,13 +206,13 @@ describe('Server Syncing', () => {
         yText.insert(3, 'baz')
 
         let error: Error | null
-        connection.on('error', (_error) => {
+        client.on('error', (_error) => {
           error = _error
         })
 
         // Send updates to client again including new
         const partialUpdate = Y.encodeStateAsUpdate(ydoc, partialSv)
-        connection.sendUpdate(docKey, partialUpdate)
+        client.sendUpdate(docKey, partialUpdate)
 
         await tryUntil(async () => {
           expect(error?.name).to.equal('BadRequestError')
@@ -259,8 +234,6 @@ describe('Server Syncing', () => {
         expect(
           ((updates[0]!.structs[0] as Y.Item).content as Y.ContentString).str
         ).to.equal('foo')
-
-        connection.disconnect()
       }
     )
   )

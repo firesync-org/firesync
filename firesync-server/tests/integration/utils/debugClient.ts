@@ -1,5 +1,5 @@
 import fetch, { RequestInit } from 'node-fetch'
-import Firesync, { Role } from '@firesync/client'
+import Firesync from '@firesync/client'
 import { getClient } from './getClient'
 
 export class DebugClient {
@@ -11,66 +11,21 @@ export class DebugClient {
     this.clients = []
   }
 
-  async createUser() {
-    const response = await this.fetch(`/debug/user`, {
-      method: 'POST'
-    })
-    const { refreshToken, accessToken, userId } = (await response.json()) as {
-      refreshToken: string
-      accessToken: string
-      expiresInSeconds: number
-      userId: string
-    }
-    return { refreshToken, accessToken, userId }
-  }
-
-  async createUserAndClient() {
-    const { accessToken, refreshToken, userId } = await this.createUser()
-
+  getClient({ token, connect = true }: { token: string; connect?: boolean }) {
     const client = getClient({
-      connect: false
+      connect,
+      token
     })
-    client.session.setSession({ accessToken, refreshToken })
 
     this.clients.push(client)
 
-    return { client, userId }
-  }
-
-  async expireSessionTokens({
-    refreshToken,
-    accessToken
-  }: {
-    refreshToken?: string
-    accessToken?: string
-  }) {
-    await this.fetch('/debug/tokens/expire', {
-      method: 'POST',
-      body: JSON.stringify({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      })
-    })
-  }
-
-  async expireInviteToken(token: string) {
-    await this.fetch(`/debug/invites/${token}/expire`, {
-      method: 'POST'
-    })
-  }
-
-  async createRole(docKey: string, userId: string, role: Role) {
-    await this.fetch(`/debug/docs/${docKey}/roles`, {
-      method: 'POST',
-      body: JSON.stringify({
-        userId,
-        role
-      })
-    })
+    return client
   }
 
   async getDocUpdates(docKey: string) {
-    const response = await this.fetch(`/debug/docs/${docKey}/updates`)
+    const response = await this.fetch(
+      `/debug/docs/${encodeURIComponent(docKey)}/updates`
+    )
     const data = (await response.json()) as {
       updates: Array<number[]>
     }
@@ -78,7 +33,9 @@ export class DebugClient {
   }
 
   async getDocStateVector(docKey: string) {
-    const response = await this.fetch(`/debug/docs/${docKey}/sv`)
+    const response = await this.fetch(
+      `/debug/docs/${encodeURIComponent(docKey)}/sv`
+    )
     const data = (await response.json()) as {
       sv: { [clientId: string]: number }
     }
@@ -94,7 +51,7 @@ export class DebugClient {
   }
 
   async packUpdates(docKey: string) {
-    await this.fetch(`/debug/docs/${docKey}/updates/pack`, {
+    await this.fetch(`/debug/docs/${encodeURIComponent(docKey)}/updates/pack`, {
       method: 'POST'
     })
   }
@@ -120,6 +77,7 @@ export class DebugClient {
   async setConfig(config: {
     packAfterNUpdates?: number
     waitSecondsBeforePacking?: number
+    jwtAuthSecrets?: string[]
   }) {
     await this.fetch(`/debug/config`, {
       method: 'POST',

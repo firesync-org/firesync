@@ -1,14 +1,8 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
-import LoginWrapper from './LoginWrapper'
-import DocsList from './DocsList'
 import Editor from './Editor'
 
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <DocsList />
-  },
   {
     path: 'docs/:docKey',
     element: <Editor />
@@ -16,9 +10,5 @@ const router = createBrowserRouter([
 ])
 
 export default function App() {
-  return (
-    <LoginWrapper>
-      <RouterProvider router={router} />
-    </LoginWrapper>
-  )
+  return <RouterProvider router={router} />
 }

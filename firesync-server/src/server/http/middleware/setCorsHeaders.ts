@@ -2,6 +2,7 @@ import cors from 'cors'
 import { requestHandler } from '../helpers/requestHandler'
 import models from '../../../server/models'
 import { getProjectConfig } from '../../../config'
+import { wildCardsToRegex } from '../../lib/wildCardsToRegex'
 
 export const setCorsHeadersForProject = requestHandler(
   async (req, res, next) => {
@@ -9,7 +10,7 @@ export const setCorsHeadersForProject = requestHandler(
     const { corsAllowedOrigins } = await getProjectConfig(project.id)
     const origins = (corsAllowedOrigins || '')
       .split('\n')
-      .map(simplePatternToRegex)
+      .map((origin) => wildCardsToRegex(origin))
     return cors({
       origin: origins,
       credentials: true,
@@ -17,13 +18,3 @@ export const setCorsHeadersForProject = requestHandler(
     })(req, res, next)
   }
 )
-
-export const simplePatternToRegex = (pattern: string) => {
-  // Turn a pattern with '*' as wildcards into a proper regex
-  // E.g. '*.example.com' -> /^.*\.example\.com$/
-  return new RegExp(`^${pattern.split('*').map(escapeRegex).join('.*')}$`)
-}
-
-// https://stackoverflow.com/a/6969486
-const escapeRegex = (string: string) =>
-  string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

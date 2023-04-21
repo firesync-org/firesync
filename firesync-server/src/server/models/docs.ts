@@ -1,32 +1,34 @@
-import { CannotAccessDocHttpError } from '../http/helpers/errors'
+import { NotFoundHttpError } from '../http/helpers/errors'
 import { db } from '../../db/db'
-import { Role } from '../../shared/roles'
-import { roles } from './roles'
+import { BadRequestError } from '../../shared/errors'
 
 export const docs = {
-  async getDocId(
-    projectId: string,
-    docKey: string,
-    userId: string,
-    allowedRoles: Role[]
-  ) {
-    const docId = await this.getDocIdWithoutAuth(projectId, docKey)
-    const currentRole = await roles.getRole(docId, userId)
-    if (currentRole === undefined || !allowedRoles.includes(currentRole.role)) {
-      throw new CannotAccessDocHttpError(docKey)
+  async getOrCreateDocId(projectId: string, docKey: string, txn = db.knex) {
+    if (docKey.length < 3) {
+      throw new BadRequestError(
+        'Invalid doc key format: should be at least 3 characters long'
+      )
+    }
+    if (docKey.length > 1024) {
+      throw new BadRequestError(
+        'Invalid doc key format: should be less than 1024 characters'
+      )
+    }
+    if (!docKey.match(/^[a-zA-Z0-9][a-zA-Z0-9\-/]+[a-zA-Z0-9]$/)) {
+      throw new BadRequestError(
+        'Invalid doc key format: should only contain letters, numbers and / and - characters, and start and end with a letter or number'
+      )
     }
 
-    return docId
-  },
+    const docs = await txn('docs')
+      .insert({ project_id: projectId, key: docKey })
+      .onConflict(['project_id', 'key'])
+      .merge() // Needed to return the id, but doesn't update anything
+      .returning(['id'])
 
-  async getDocIdWithoutAuth(projectId: string, docKey: string, txn = db.knex) {
-    const doc = await txn('docs')
-      .select('id')
-      .where('project_id', projectId)
-      .andWhere('key', docKey)
-      .first()
+    const doc = docs[0]
     if (doc === undefined) {
-      throw new CannotAccessDocHttpError(docKey)
+      throw new NotFoundHttpError(docKey)
     }
 
     return doc.id

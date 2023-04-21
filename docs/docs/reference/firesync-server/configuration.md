@@ -2,7 +2,7 @@
 
 `@firesync/server` is configured by setting environment variables, for example:
 
-```sh
+```bash
 $ export FS_POSTGRES_DATABASE=acme-db
 $ npx @firesync/server server
 ```
@@ -61,7 +61,7 @@ Set `FS_TRUST_PROXY=true` if running behind a proxy. This tells `@firesync/serve
 
 Set `FS_CORS_ALLOWED_ORIGINS` to restrict Cross-Origin Resource Sharing (CORS) to specific [origins](https://developer.mozilla.org/en-US/docs/Glossary/Origin), to only allow access to FireSync from client code running on specific domains, protocols and/or ports. Accepts a comma delimited list of origins, with `*` as a wildcard, e.g.
 
-```sh
+```bash
 # Allow access from all domains
 $ export FS_CORS_ALLOW_ORIGINS='*'
 
@@ -74,45 +74,20 @@ $ export FS_CORS_ALLOW_ORIGINS=https://foo.example.com,https://*.bar.example.com
 
 See https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS for more information.
 
-## Invites
+## Authentication
 
-### `FS_REDEEM_INVITE_URL`
+### `FS_JWT_AUTH_SECRET`
 
-The URL in your app to redirect to after a user has accepted an invite to join on a doc.
+Set `FS_JWT_AUTH_SECRET` to the value used to sign the JWTs used for authentication. Accepts a comma delimited list of valid secrets, which can be used for rotating secrets to add a new secret while the old one remains valid until removed.
 
-## Google Auth
-
-To enable users to log in to your FireSync project with Google, you will need to configure some [Google OAuth 2.0 credentials](https://developers.google.com/identity/protocols/oauth2/javascript-implicit-flow#creatingcred).
-
-:::tip 
-
-Set 'Authorised Redirect URL' to `http://localhost:5000/auth/google/callback` in your Google credentials config (or replace `http://localhost:5000` with wherever your FireSync server is running).
-
-:::
-
-### `FS_GOOGLE_AUTH_CLIENT_ID`
-
-Your Google OAuth 2.0 Client ID
-
-### `FS_GOOGLE_AUTH_CLIENT_SECRET`
-
-Your Google OAuth 2.0 Client Secret
-
-### `FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL`
-
-The URL in your application that FireSync should redirect to after successfully authenticating. For example:
-
-```sh
-$ export FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL=http://my-app.example.com/dashboard
+```bash
+# A single secret
+$ export FS_JWT_AUTH_SECRET='/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc'
+# Support two valid secrets:
+#   /B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc
+#   3t6w9zE$B&E)H@McQfTjWnZr4u7x!A%D*
+$ export FS_JWT_AUTH_SECRET='/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc,3t6w9zE$B&E)H@McQfTjWnZr4u7x!A%D*'
 ```
 
-The redirect URL will have some data appended it to with the session tokens which the `@firesync/client` library will automatically use to set up the client session.
 
-:::tip 
 
-Note that there are two redirects which happen during the authentication flow:
-
-1. FireSync sends your user to Google to authenticate, and then Google redirects back to FireSync. You need to configure the 'Authorised Redirect URIs' in your Google OAuth 2.0 credentials to include `http://localhost:5000/auth/google/callback` (or replace `http://localhost:5000` with wherever your FireSync server is running) to make this step work.
-2. FireSync then sets up the user session in FireSync, and redirects back to your app. You configure this redirect to with `FS_GOOGLE_AUTH_SUCCESS_REDIRECT_URL`.
-
-:::

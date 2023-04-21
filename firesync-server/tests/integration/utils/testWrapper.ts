@@ -1,8 +1,10 @@
+import crypto from 'crypto'
 import { expect } from 'chai'
-import Firesync, { Y } from '@firesync/client'
+import FireSync, { Y } from '@firesync/client'
 import { DebugClient } from './debugClient'
 import { tryUntil } from './tryUntil'
 import { v4 as uuidv4 } from 'uuid'
+import jwt from 'jsonwebtoken'
 
 export const testWrapper = function (
   {
@@ -16,38 +18,48 @@ export const testWrapper = function (
     ydoc: Y.Doc
     docKey: string
     server: DebugClient
-    client: Firesync
+    client: FireSync
+    secret: string
+    token: string
   }) => Promise<void>
 ) {
   return async function () {
     const server = new DebugClient(`http://localhost:5000`)
 
-    const { client } = await server.createUserAndClient()
+    const secret = crypto.randomBytes(32).toString('hex')
+    await server.setConfig({ jwtAuthSecrets: [secret] })
 
-    client.connection.maxConnectionAttemptDelay = 30
-    client.connection.minConnectionAttemptDelay = 1
-    client.connection.soonConnectionAttemptDelayThreshold = 5
+    const docKey = uuidv4()
+    const ydoc = new Y.Doc()
 
-    client.connection.on('error', () => {
+    const token = jwt.sign(
+      {
+        docs: {
+          [docKey]: 'write'
+        }
+      },
+      secret
+    )
+    const client = server.getClient({ token, connect })
+
+    client.maxConnectionAttemptDelay = 30
+    client.minConnectionAttemptDelay = 1
+    client.soonConnectionAttemptDelayThreshold = 5
+
+    client.on('error', () => {
       // stop lots of expected errors being logged
     })
 
-    const docKey = uuidv4()
-    await client.createDoc(docKey)
-    const ydoc = new Y.Doc()
-
     if (connect) {
-      client.connection.connect()
-
       await tryUntil(async () => {
-        expect(client.connection.connected).to.equal(true)
+        expect(client.connected).to.equal(true)
       })
 
       if (subscribe) {
-        client.connection.subscribe(docKey, ydoc)
+        client.subscribe(docKey, ydoc)
         await tryUntil(async () => {
-          expect(client.connection.isSubscribed(docKey)).to.equal(true)
-          expect(client.connection.hasSentInitialUpdate(docKey)).to.equal(true)
+          expect(client.isSubscribed(docKey)).to.equal(true)
+          expect(client.hasSentInitialUpdate(docKey)).to.equal(true)
         })
       }
     }
@@ -59,7 +71,7 @@ export const testWrapper = function (
         waitSecondsBeforePacking: 60
       })
       await server.acceptConnections()
-      server.clients.forEach((client) => client.connection.disconnect())
+      server.clients.forEach((client) => client.disconnect())
     }
 
     try {
@@ -67,7 +79,9 @@ export const testWrapper = function (
         ydoc,
         docKey,
         server,
-        client
+        client,
+        secret,
+        token
       })
     } catch (error) {
       await cleanUp()

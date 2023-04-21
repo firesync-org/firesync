@@ -10,17 +10,18 @@ export const config = {
     ssl:
       process.env.FS_DATABASE_SSL === 'true'
         ? {
-          rejectUnauthorized:
-            process.env.FS_DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
-          ca: process.env.FS_DATABASE_SSL_CA,
-          key: process.env.FS_DATABASE_SSL_KEY,
-          cert: process.env.FS_DATABASE_SSL_CERT
-        }
+            rejectUnauthorized:
+              process.env.FS_DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
+            ca: process.env.FS_DATABASE_SSL_CA,
+            key: process.env.FS_DATABASE_SSL_KEY,
+            cert: process.env.FS_DATABASE_SSL_CERT
+          }
         : false
   },
   trustProxy: process.env.FS_TRUST_PROXY === 'true',
   host: process.env.FS_HOST || 'localhost',
   port: parseInt(process.env.FS_PORT || '5000'),
+  jwtAuthSecrets: (process.env.FS_JWT_AUTH_SECRET || '').split(','),
 
   // Internal only, but can be updated for testing via debugRouter
   packAfterNUpdates: 64,

@@ -30,19 +30,15 @@ describe('Packing Updates', () => {
     'concurrent updates',
     testWrapper(
       {},
-      async ({ client: client1, ydoc: ydoc1, server, docKey }) => {
+      async ({ client: client1, ydoc: ydoc1, server, docKey, token }) => {
         const PACK_AFTER_N_UPDATES = 5
         const WAIT_SECONDS_BEFORE_PACKING = 50 / 1000 // 50ms
         const UPDATE_COUNT = 10
 
-        const client2 = getClient({
-          session: client1.session
-        })
-        const ydoc2 = client2.connection.subscribe(docKey)
-        const client3 = getClient({
-          session: client1.session
-        })
-        const ydoc3 = client3.connection.subscribe(docKey)
+        const client2 = server.getClient({ token })
+        const ydoc2 = client2.subscribe(docKey)
+        const client3 = server.getClient({ token })
+        const ydoc3 = client3.subscribe(docKey)
 
         await server.setConfig({
           packAfterNUpdates: PACK_AFTER_N_UPDATES,
@@ -62,8 +58,8 @@ describe('Packing Updates', () => {
           expect(updates.length).to.be.lessThan(UPDATE_COUNT * 3)
         })
 
-        client2.connection.disconnect()
-        client3.connection.disconnect()
+        client2.disconnect()
+        client3.disconnect()
       }
     )
   )
@@ -143,7 +139,7 @@ const applyRandomUpdateAndWaitForAck = async (
   client: Firesync
 ) => {
   const waitForAck = new Promise<void>((resolve) =>
-    client.connection.once('updateAcked', () => {
+    client.once('updateAcked', () => {
       resolve()
     })
   )

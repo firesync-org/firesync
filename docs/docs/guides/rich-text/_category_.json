@@ -1,0 +1,8 @@
+{
+  "label": "Rich Text Collaboration",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn how to create a real-time collaborative rich-text editor with FireSync and your favourite text editor."
+  }
+}

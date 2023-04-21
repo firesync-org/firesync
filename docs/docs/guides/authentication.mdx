@@ -1,0 +1,143 @@
+---
+sidebar_position: 0
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Authentication
+
+FireSync uses [JSON Web Tokens (JWTs)](https://en.wikipedia.org/wiki/JSON_Web_Token) for authentication. To grant a user access to FireSync documents you should create a JWT which specifies the documents the user can access. The JWT is signed by a secret that only you and FireSync know so FireSync can confirm the user is authorized by you. You should create and sign the JWT on your backend where the shared secret is available, then pass the JWT down to the user's client where it can be included with requests to FireSync.
+
+## Configure your secret
+
+```mdx-code-block
+<Tabs groupId="environment">
+<TabItem value="firesync-cloud" label="FireSync Cloud" default>
+```
+
+:::danger TODO
+
+:::
+
+```mdx-code-block
+</TabItem>
+<TabItem value="firesync-server" label="FireSync Server">
+```
+
+Configure your JWT secret with the [`FS_JWT_AUTH_SECRET`](/reference/firesync-server/configuration#fs_jwt_auth_secret) environment variable:
+```bash
+$ export FS_JWT_AUTH_SECRET='/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc'
+```
+
+```mdx-code-block
+</TabItem>
+</Tabs>
+```
+
+## Generate a JWT
+
+
+```mdx-code-block
+<Tabs groupId="language">
+<TabItem value="nodejs" label="Node.js" default>
+```
+
+Install the `jsonwebtoken` library:
+
+```bash
+$ npm install --save jsonwebtoken
+```
+
+In your backend code sign the token to pass to your frontend client code:
+
+```js
+import jwt from 'jsonwebtoken';
+
+const payload = {
+  docs: {
+    // Grant write access to the document called 'foo' and readonly access to 'bar'
+    'foo': 'write',
+    'bar': 'read'
+  }
+};
+const secret = '/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc';
+
+// Pass token to your client
+const token = jwt.sign(payload, secret);
+```
+
+```mdx-code-block
+</TabItem>
+<TabItem value="python" label="Python">
+```
+
+Install the `jwt` library:
+
+```bash
+$ pip install jwt
+```
+
+In your backend code sign the token to pass to your frontend client code:
+
+```python
+import jwt
+
+payload = {
+  'docs': {
+    # Grant write access to the document called 'foo' and readonly access to 'bar'
+    'foo': 'write',
+    'bar': 'read'
+  }
+}
+secret = '/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc'
+
+# Pass token to your client
+token = jwt.encode(payload, secret)
+
+print(token)
+```
+
+
+```mdx-code-block
+</TabItem>
+</Tabs>
+```
+
+## Configure FireSync Client
+
+Pass the token you have generated on your backend to the frontend client to allow the user access to the specified documents:
+
+
+```mdx-code-block
+<Tabs groupId="environment">
+<TabItem value="firesync-cloud" label="FireSync Cloud" default>
+```
+
+```js
+import FireSync from '@firesync/client'
+
+const firesync = new FireSync({
+  projectName: 'acme-dev',
+  token: token // Generated above
+})
+```
+
+```mdx-code-block
+</TabItem>
+<TabItem value="firesync-server" label="FireSync Server">
+```
+
+```js
+import FireSync from '@firesync/client'
+
+const firesync = new FireSync({
+  baseUrl: 'http://localhost:5000',
+  token: token // Generated above
+})
+```
+
+```mdx-code-block
+</TabItem>
+</Tabs>
+```

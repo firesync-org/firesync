@@ -7,15 +7,15 @@ import { tryUntil, testWrapper } from './utils'
 describe('Protocol Errors', () => {
   test(
     'send update with a session doc id that is not subscribed',
-    testWrapper({}, async ({ client: { connection } }) => {
-      expect(connection.connectsCount).to.equal(1)
+    testWrapper({}, async ({ client }) => {
+      expect(client.connectsCount).to.equal(1)
 
       let error: Error | null
-      connection.on('error', (_error) => {
+      client.on('error', (_error) => {
         error = _error
       })
 
-      connection.send(
+      client.send(
         encodeMessage({
           messageType: MessageType.UPDATE,
           updateId: 42,
@@ -25,22 +25,22 @@ describe('Protocol Errors', () => {
 
       await tryUntil(async () => {
         expect(error?.name).to.equal('BadRequestError')
-        expect(connection.connectsCount).to.equal(2)
+        expect(client.connectsCount).to.equal(2)
       })
     })
   )
 
   test(
     'send state vector with a session doc id that is not subscribed',
-    testWrapper({}, async ({ client: { connection } }) => {
-      expect(connection.connectsCount).to.equal(1)
+    testWrapper({}, async ({ client }) => {
+      expect(client.connectsCount).to.equal(1)
 
       let error: Error | null
-      connection.on('error', (_error) => {
+      client.on('error', (_error) => {
         error = _error
       })
 
-      connection.send(
+      client.send(
         encodeMessage({
           messageType: MessageType.SYNC_STATE_VECTOR,
           sessionDocId: '42', // Doesn't exist
@@ -50,22 +50,22 @@ describe('Protocol Errors', () => {
 
       await tryUntil(async () => {
         expect(error?.name).to.equal('BadRequestError')
-        expect(connection.connectsCount).to.equal(2)
+        expect(client.connectsCount).to.equal(2)
       })
     })
   )
 
   test(
     'with an unrecognised message type',
-    testWrapper({}, async ({ client: { connection } }) => {
-      expect(connection.connectsCount).to.equal(1)
+    testWrapper({}, async ({ client }) => {
+      expect(client.connectsCount).to.equal(1)
 
       let error: Error | null
-      connection.on('error', (_error) => {
+      client.on('error', (_error) => {
         error = _error
       })
 
-      connection.send(
+      client.send(
         encodeMessage({
           messageType: 999
         } as any)
@@ -73,26 +73,26 @@ describe('Protocol Errors', () => {
 
       await tryUntil(async () => {
         expect(error?.name).to.equal('MessageEncodingError')
-        expect(connection.connectsCount).to.equal(2)
+        expect(client.connectsCount).to.equal(2)
       })
     })
   )
 
   test(
     'with a badly encoded message',
-    testWrapper({}, async ({ client: { connection } }) => {
-      expect(connection.connectsCount).to.equal(1)
+    testWrapper({}, async ({ client }) => {
+      expect(client.connectsCount).to.equal(1)
 
       let error: Error | null
-      connection.on('error', (_error) => {
+      client.on('error', (_error) => {
         error = _error
       })
 
-      connection.send(new Uint8Array())
+      client.send(new Uint8Array())
 
       await tryUntil(async () => {
         expect(error?.name).to.equal('MessageEncodingError')
-        expect(connection.connectsCount).to.equal(2)
+        expect(client.connectsCount).to.equal(2)
       })
     })
   )

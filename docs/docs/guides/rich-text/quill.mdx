@@ -1,0 +1,79 @@
+import BrowserOnly from '@docusaurus/BrowserOnly';
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Quill
+
+FireSync can bind to the [Quill editor](https://quilljs.com/) to create a collaborative rich-text editor with just a few lines of code.
+
+## Example
+
+:::info Live Example
+
+This rich text editor below is a Quill instance connected to FireSync. Open this page in another browser to see the collaboration in action, or share this URL with someone else.
+
+:::
+
+<BrowserOnly>
+  {() => {
+    const { QuillEditor } = require('@site/src/components/QuillEditor');
+    return <QuillEditor docKey="rich-text-quill" initialValue="This editor supports real-time collaboration. Open in another browser to try it out!" />
+  }}
+</BrowserOnly>
+
+## Implementation
+
+```mdx-code-block
+<Tabs groupId="frontend-language">
+<TabItem value="react" label="React" default>
+```
+
+```js
+import { FireSync } from '@firesync/client'
+import ReactQuill from 'react-quill'
+import { QuillBinding } from 'y-quill'
+import 'react-quill/dist/quill.snow.css'
+
+const firesync = new FireSync({
+  // A JWT access token signed by your backend
+  token: '<your-token>',
+  // Your FireSync Cloud project name
+  projectName: 'acme-dev',
+  // Or if running FireSync yourself locally:
+  // baseUrl: 'http://localhost:5000',
+
+})
+
+function CollaborativeQuillEditor() {
+  const quillRef = useRef<ReactQuill | null>(null)
+
+  // Doc key to sync with FireSync
+  const docKey = 'quill-example'
+
+  useEffect(() => {
+    // Subscribe to the document. Any local updates to this doc
+    // will be sent to the server, and any updates from
+    // other users will also get synced to this doc
+    const doc = firesync.subscribe(docKey)
+
+    // Bind the doc to the Quill editor
+    const quill = quillRef.current.editor
+    const binding = new QuillBinding(doc.getText('t'), quill)
+
+    // Tidy up everything on unmount
+    return () => {
+      firesync.unsubscribe(docKey)
+      binding.destroy()
+    }
+  }, [])
+
+  return <ReactQuill theme="snow" ref={quillRef} />
+}
+```
+
+```mdx-code-block
+</TabItem>
+</Tabs>
+```
+

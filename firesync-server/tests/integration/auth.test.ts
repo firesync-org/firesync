@@ -1,315 +1,242 @@
-import chai, { expect } from 'chai'
-import chaiAsPromised from 'chai-as-promised'
-import { testWrapper, tryUntil } from './utils'
-import { AuthError } from '@firesync/client'
+import jwt from 'jsonwebtoken'
+import { expect } from 'chai'
 
-chai.use(chaiAsPromised)
+import { testWrapper, tryUntil } from './utils'
+import { AuthError, BadRequestError } from '@firesync/client'
 
 describe('Auth', () => {
-  describe('valid session', () => {
-    test(
-      'client.isLoggedIn() in should return true',
-      testWrapper({ connect: false }, async ({ client }) => {
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(true)
-      })
-    )
-
-    test(
-      'client.getUser() should return user',
-      testWrapper({ connect: false }, async ({ client }) => {
-        const { data: user } = await client.getUser()
-        expect(typeof user?.userId).to.equal('string')
-      })
-    )
-
-    test(
-      'client.connection.connect() should connect',
-      testWrapper({ connect: false }, async ({ client }) => {
-        client.connection.connect()
-
-        await tryUntil(async () => {
-          expect(client.connection.connected).to.equal(true)
-        })
-      })
-    )
-  })
-
-  describe('no session', () => {
-    test(
-      'client.isLoggedIn() in should return false',
-      testWrapper({ connect: false }, async ({ client }) => {
-        client.session.clearSession()
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(false)
-      })
-    )
-
-    test(
-      'client.getUser() should return AuthError',
-      testWrapper({ connect: false }, async ({ client }) => {
-        client.session.clearSession()
-        const { data: user, error } = await client.getUser()
-        expect(user).to.equal(null)
-        expect(error instanceof AuthError).to.equal(true)
-        expect(error?.message).to.match(
-          /You are not logged in or your session has expired/
+  test(
+    'valid token can write doc',
+    testWrapper(
+      { connect: false },
+      async ({ client, docKey, server, secret }) => {
+        client.token = jwt.sign(
+          {
+            docs: {
+              [docKey]: 'write'
+            }
+          },
+          secret
         )
-      })
+
+        client.connect()
+        await tryUntil(async () => {
+          expect(client.connected).to.equal(true)
+        })
+
+        const ydoc = client.subscribe(docKey)
+        ydoc.getText('').insert(0, 'foo')
+
+        // Should be able to write
+        await tryUntil(async () => {
+          const updates = await server.getDocUpdates(docKey)
+          expect(updates.length).to.equal(1)
+        })
+      }
     )
+  )
 
-    test(
-      'client.connection.connect() should throw AuthError',
-      testWrapper({ connect: false }, async ({ client }) => {
-        client.session.clearSession()
+  test(
+    'valid token with read permission cannot write',
+    testWrapper(
+      { connect: false },
+      async ({ client, docKey, server, secret }) => {
+        client.token = jwt.sign(
+          {
+            docs: {
+              [docKey]: 'read'
+            }
+          },
+          secret
+        )
 
-        let error: Error | null
-        client.connection.on('error', (_error) => {
+        client.connect()
+        await tryUntil(async () => {
+          expect(client.connected).to.equal(true)
+        })
+
+        let error: Error | undefined
+        client.on('error', (_error) => {
           error = _error
         })
 
-        client.connection.connect()
+        const ydoc = client.subscribe(docKey)
+        ydoc.getText('').insert(0, 'foo')
 
         await tryUntil(async () => {
           expect(error).is.instanceOf(AuthError)
-          expect(error?.message).to.match(
-            /You are not logged in or your session has expired/
-          )
+          expect(error?.message).to.match(/Not authorized to write doc/)
         })
-      })
-    )
-  })
 
-  describe('revoked session', () => {
-    test(
-      'client.isLoggedIn() in should return false',
-      testWrapper({ connect: false }, async ({ client }) => {
-        await client.revokeSession()
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(false)
-      })
+        // Should not have processed update
+        await tryUntil(async () => {
+          const updates = await server.getDocUpdates(docKey)
+          expect(updates.length).to.equal(0)
+        })
+      }
     )
+  )
 
-    test(
-      'client.getUser() should return AuthError',
-      testWrapper({ connect: false }, async ({ client }) => {
-        await client.revokeSession()
-        const { data: user, error } = await client.getUser()
-        expect(user).to.equal(null)
-        expect(error instanceof AuthError).to.equal(true)
-        expect(error?.message).to.match(
-          /You are not logged in or your session has expired/
+  test(
+    'valid token with read permission can read',
+    testWrapper({}, async ({ client, docKey, server, secret, ydoc }) => {
+      ydoc.getText('a').insert(0, 'hello world')
+
+      const token = jwt.sign(
+        {
+          docs: {
+            [docKey]: 'read'
+          }
+        },
+        secret
+      )
+      const readOnlyClient = server.getClient({ token })
+
+      readOnlyClient.connect()
+      const readOnlyYDoc = client.subscribe(docKey)
+
+      await tryUntil(async () => {
+        expect(readOnlyYDoc.getText('a').toJSON()).to.equal('hello world')
+      })
+    })
+  )
+
+  test(
+    'valid token with no doc access',
+    testWrapper(
+      { connect: false },
+      async ({ client, docKey, server, secret }) => {
+        client.token = jwt.sign(
+          {
+            docs: {
+              'wrong-doc-key': 'write'
+            }
+          },
+          secret
         )
-      })
-    )
 
-    test(
-      'client.connection.connect() should throw AuthError',
-      testWrapper({ connect: false }, async ({ client }) => {
-        await client.revokeSession()
+        client.connect()
+        await tryUntil(async () => {
+          expect(client.connected).to.equal(true)
+        })
 
-        let error: Error | null
-        client.connection.on('error', (_error) => {
+        let error: Error | undefined
+        client.on('error', (_error) => {
           error = _error
         })
 
-        client.connection.connect()
+        const ydoc = client.subscribe(docKey)
+        ydoc.getText('').insert(0, 'foo')
 
         await tryUntil(async () => {
           expect(error).is.instanceOf(AuthError)
-          expect(error?.message).to.match(
-            /You are not logged in or your session has expired/
-          )
+          expect(error?.message).to.match(/Not authorized to read doc/)
         })
-      })
-    )
-  })
 
-  describe('expired access and refresh tokens', () => {
-    test(
-      'client.isLoggedIn() in should return false',
-      testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireSessionTokens({
-          accessToken: client.session.accessToken,
-          refreshToken: client.session.refreshToken
+        // Should not have processed update
+        await tryUntil(async () => {
+          const updates = await server.getDocUpdates(docKey)
+          expect(updates.length).to.equal(0)
         })
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(false)
-      })
+      }
     )
+  )
 
-    test(
-      'client.getUser() should throw AuthError',
-      testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireSessionTokens({
-          accessToken: client.session.accessToken,
-          refreshToken: client.session.refreshToken
-        })
-        const { data: user, error } = await client.getUser()
-        expect(user).to.equal(null)
-        expect(error instanceof AuthError).to.equal(true)
-        expect(error?.message).to.match(
-          /You are not logged in or your session has expired/
+  test(
+    'token with invalid secret',
+    testWrapper({ connect: false }, async ({ client, docKey, server }) => {
+      client.token = jwt.sign(
+        {
+          docs: {
+            [docKey]: 'write'
+          }
+        },
+        'wrong-secret'
+      )
+
+      client.connect()
+
+      let error: Error | undefined
+      client.on('error', (_error) => {
+        error = _error
+      })
+
+      const ydoc = client.subscribe(docKey)
+      ydoc.getText('').insert(0, 'foo')
+
+      await tryUntil(async () => {
+        expect(error).is.instanceOf(AuthError)
+        expect(error?.message).to.match(/Invalid Auth Credentials/)
+      })
+
+      // Should not have processed update
+      await tryUntil(async () => {
+        const updates = await server.getDocUpdates(docKey)
+        expect(updates.length).to.equal(0)
+      })
+    })
+  )
+
+  test(
+    'multiple secrets',
+    testWrapper({ connect: false }, async ({ client, docKey, server }) => {
+      const secrets = ['one', 'two', 'three'] as const
+      await server.setConfig({ jwtAuthSecrets: [...secrets] })
+
+      client.token = jwt.sign(
+        {
+          docs: {
+            [docKey]: 'write'
+          }
+        },
+        secrets[2]
+      )
+
+      client.connect()
+      await tryUntil(async () => {
+        expect(client.connected).to.equal(true)
+      })
+
+      const ydoc = client.subscribe(docKey)
+      ydoc.getText('').insert(0, 'foo')
+
+      // Should be able to write
+      await tryUntil(async () => {
+        const updates = await server.getDocUpdates(docKey)
+        expect(updates.length).to.equal(1)
+      })
+    })
+  )
+
+  test(
+    'wildcards in docKey',
+    testWrapper(
+      { connect: false },
+      async ({ client, docKey: baseDocKey, server, secret }) => {
+        const docKey = `wildcard/${baseDocKey}`
+        client.token = jwt.sign(
+          {
+            docs: {
+              'wildcard/*': 'write'
+            }
+          },
+          secret
         )
-      })
-    )
 
-    test(
-      'client.connection.connect() should throw AuthError',
-      testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireSessionTokens({
-          accessToken: client.session.accessToken,
-          refreshToken: client.session.refreshToken
-        })
-
-        let error: Error | null
-        client.connection.on('error', (_error) => {
-          error = _error
-        })
-
-        client.connection.connect()
-
+        client.connect()
         await tryUntil(async () => {
-          expect(error).is.instanceOf(AuthError)
-          expect(error?.message).to.match(
-            /You are not logged in or your session has expired/
-          )
-        })
-      })
-    )
-  })
-
-  describe('expired access token should refresh', () => {
-    test(
-      'client.isLoggedIn() in should return true',
-      testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireSessionTokens({
-          accessToken: client.session.accessToken
-        })
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(true)
-      })
-    )
-
-    test(
-      'client.getUser() should return user',
-      testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireSessionTokens({
-          accessToken: client.session.accessToken
-        })
-        const { data: user } = await client.getUser()
-        expect(typeof user?.userId).to.equal('string')
-      })
-    )
-
-    test(
-      'client.connection.connect() should connect',
-      testWrapper({ connect: false }, async ({ client, server }) => {
-        await server.expireSessionTokens({
-          accessToken: client.session.accessToken
+          expect(client.connected).to.equal(true)
         })
 
-        client.connection.connect()
+        const ydoc = client.subscribe(docKey)
+        ydoc.getText('').insert(0, 'foo')
 
+        // Should be able to write
         await tryUntil(async () => {
-          expect(client.connection.connected).to.equal(true)
+          const updates = await server.getDocUpdates(docKey)
+          expect(updates.length).to.equal(1)
         })
-      })
+      }
     )
-
-    test(
-      'refresh token should get refreshed',
-      testWrapper({ connect: false }, async ({ client, server }) => {
-        const oldRefreshToken = client.session.refreshToken
-        await server.expireSessionTokens({
-          accessToken: client.session.accessToken
-        })
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(true)
-        expect(client.session.refreshToken).to.not.equal(oldRefreshToken)
-      })
-    )
-
-    test(
-      'previous access token should no longer be valid',
-      testWrapper({ connect: false }, async ({ client }) => {
-        const previousAccessToken = client.session.accessToken
-
-        await client.session.refreshAccessToken()
-        const { data: loggedInCurrent } = await client.isLoggedIn()
-        expect(loggedInCurrent).to.equal(true)
-
-        client.session.setSession({
-          accessToken: previousAccessToken,
-          refreshToken: client.session.refreshToken!
-        })
-
-        client.api.autoRefreshAccessToken = false
-        const { data: loggedInPrevious } = await client.isLoggedIn()
-        expect(loggedInPrevious).to.equal(false)
-      })
-    )
-  })
-
-  describe('revoking other tokens', () => {
-    test(
-      'access token should no longer be valid',
-      testWrapper({ connect: false }, async ({ client }) => {
-        await client.revokeSession({
-          revokeAccessToken: true,
-          revokeRefreshToken: false
-        })
-        client.api.autoRefreshAccessToken = false
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(false)
-      })
-    )
-
-    test(
-      'refresh token should no longer be valid',
-      testWrapper({ connect: false }, async ({ client }) => {
-        await client.revokeSession({
-          revokeAccessToken: false, // Should get revoked anyway with refresh token
-          revokeRefreshToken: true
-        })
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(false)
-      })
-    )
-
-    test(
-      'using old refresh token should revoke current refresh and access tokens',
-      testWrapper({ connect: false }, async ({ client }) => {
-        // Trying to use an old revoked refreshToken is suspicious so should revoke
-        // the existing refresh token.
-        // See https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/#Refresh-Token-Automatic-Reuse-Detection
-        const previousRefreshToken = client.session.refreshToken!
-
-        await client.session.refreshAccessToken()
-
-        const currentRefreshToken = client.session.refreshToken!
-        const currentAccessToken = client.session.accessToken!
-
-        client.session.setSession({
-          accessToken: client.session.accessToken,
-          refreshToken: previousRefreshToken
-        })
-
-        // Refreshing with previous refresh token should also revoke current access and refresh tokens
-        try {
-          await client.session.refreshAccessToken()
-        } catch {
-          // Expect this to error because refresh token is revoked
-        }
-
-        // Check current tokens were revoked
-        client.session.setSession({
-          accessToken: currentAccessToken,
-          refreshToken: currentRefreshToken
-        })
-        const { data: loggedIn } = await client.isLoggedIn()
-        expect(loggedIn).to.equal(false)
-      })
-    )
-  })
+  )
 })

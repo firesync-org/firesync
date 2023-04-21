@@ -1,17 +1,7 @@
-import { Role } from '../shared/roles'
 import knex, { Knex } from 'knex'
 import { getKnexConfig } from './config'
 import Pool from 'pg-pool'
 import { Client } from 'pg'
-
-export type DocRole = {
-  id: string // bigint is returned as a string
-  doc_id: string
-  project_user_id: string
-  role: Role
-  inserted_at: Date
-  updated_at: Date
-}
 
 export type Doc = {
   id: string // bigint is returned as a string
@@ -58,42 +48,6 @@ export type DocUpdate = {
   updated_at: Date
 }
 
-export type InviteToken = {
-  id: string // bigint is returned as a string
-  token: string
-  doc_id: string
-  role: Role
-  emailed_to?: string
-  created_by_project_user_id: string
-  expires_at: string
-  redeemed_at?: string
-  redeemed_as_doc_role_id?: string
-  inserted_at: Date
-  updated_at: Date
-}
-
-export type AccessToken = {
-  id: string // bigint is returned as a string
-  family_id: string
-  project_user_id: string
-  token: string
-  expires_at: string
-  revoked: boolean
-  inserted_at: Date
-  updated_at: Date
-}
-
-export type RefreshToken = {
-  id: string // bigint is returned as a string
-  family_id: string
-  project_user_id: string
-  token: string
-  expires_at: string
-  revoked: boolean
-  inserted_at: Date
-  updated_at: Date
-}
-
 export type ProjectConfig = {
   id: string // bigint is returned as a string
   host: string
@@ -110,14 +64,10 @@ export type ProjectConfig = {
 declare module 'knex/types/tables' {
   interface Tables {
     docs: Doc
-    doc_roles: DocRole
     projects: Project
     project_users: ProjectUser
     project_user_auth_providers: ProjectUserAuthProvider
     doc_updates: DocUpdate
-    invite_tokens: InviteToken
-    access_tokens: AccessToken
-    refresh_tokens: RefreshToken
     project_configs: ProjectConfig
   }
 }

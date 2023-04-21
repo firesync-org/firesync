@@ -25,7 +25,7 @@ export default class WatchDoc extends Command {
     const { args, flags } = await this.parse(WatchDoc)
 
     const project = await models.projects.getProjectFromName(flags.projectName)
-    const docId = await models.docs.getDocIdWithoutAuth(project.id, args.docKey)
+    const docId = await models.docs.getOrCreateDocId(project.id, args.docKey)
 
     const subscriber = createSubscriber(config.postgres)
     await subscriber.connect()

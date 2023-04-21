@@ -1,7 +1,7 @@
 import { IncomingMessage } from 'http'
 import { WebSocketServer, WebSocket, RawData } from 'ws'
 import { Connection } from './Connection'
-import { auth } from './auth'
+import { Session, auth } from './auth'
 import { logging } from '../lib/Logging/Logger'
 import EventEmitter from 'events'
 import internal from 'stream'
@@ -24,7 +24,7 @@ export class WebSocketTransport extends EventEmitter {
   constructor(options: {
     ws: WebSocket
     chaosMonkey?: ChaosMonkey
-    userId: string
+    session: Session
     projectId: string
   }) {
     super()
@@ -107,12 +107,13 @@ export class WebSocketTransports {
       return
     }
 
-    let userId: string
+    let session: Session
     let project: Awaited<ReturnType<typeof projects.getProjectFromRequest>>
     try {
       project = await projects.getProjectFromRequest(request)
-      userId = await auth.getUserIdFromRequest(request)
+      session = await auth.getSessionFromRequest(request)
     } catch (error) {
+      logger.error({ error }, 'error establishing connection')
       if (error instanceof HttpError) {
         socket.write(
           `HTTP/1.1 ${error.httpStatusCode} ${error.meaning}\r\n\r\n`
@@ -128,15 +129,15 @@ export class WebSocketTransports {
     logger.info({ projectId }, 'websocket connected')
 
     this.wss.handleUpgrade(request, socket, head, (ws) => {
-      this.initializeConnection(ws, userId, projectId)
+      this.initializeConnection(ws, session, projectId)
     })
   }
 
-  initializeConnection(ws: WebSocket, userId: string, projectId: string) {
+  initializeConnection(ws: WebSocket, session: Session, projectId: string) {
     const connection = new WebSocketTransport({
       ws,
       chaosMonkey: this.chaosMonkey,
-      userId,
+      session,
       projectId
     })
     return connection

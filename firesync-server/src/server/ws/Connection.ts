@@ -20,7 +20,7 @@ import {
   UnsubscribeRequestMessage
 } from '../../shared/protocol'
 
-import { auth } from './auth'
+import { Session, auth } from './auth'
 import { logging } from '../lib/Logging/Logger'
 import EventEmitter from 'events'
 import { WebSocketTransport } from './WebSockets'
@@ -45,18 +45,18 @@ export class Connection extends EventEmitter {
   ws: WebSocketTransport
   docKeysByDocIds = new Map<string, string>()
   docIdsByDocKeys = new Map<string, string>()
-  userId: string
+  session: Session
   projectId: string
   id: string
 
   constructor(options: {
     ws: WebSocketTransport
-    userId: string
+    session: Session
     projectId: string
   }) {
     super()
     this.ws = options.ws
-    this.userId = options.userId
+    this.session = options.session
     this.projectId = options.projectId
     this.id = `conn:${HOST_ID}:${Connection.nextId++}`
   }
@@ -97,7 +97,7 @@ export class Connection extends EventEmitter {
   async handleIncomingSubscribeRequest({ docKey }: SubscribeRequestMessage) {
     logger.debug({ docKey }, 'handleIncomingSubscribeRequest')
 
-    const docId = await models.docs.getDocIdWithoutAuth(this.projectId, docKey)
+    const docId = await models.docs.getOrCreateDocId(this.projectId, docKey)
     if (docId === undefined) {
       const error = new AuthError(
         `Not authorized to read doc, or doc does not exist: ${docKey}`
@@ -115,7 +115,7 @@ export class Connection extends EventEmitter {
       return
     }
 
-    const canReadDoc = await auth.canReadDoc(this.userId, docId)
+    const canReadDoc = await auth.canReadDoc(this.session, docKey)
     if (canReadDoc) {
       this.docKeysByDocIds.set(docId, docKey)
       this.docIdsByDocKeys.set(docKey, docId)
@@ -261,7 +261,7 @@ export class Connection extends EventEmitter {
       const docKey = this.getDocKeyFromDocIdOrError(docId)
       if (docKey === null) return
 
-      const canWrite = await auth.canWriteDoc(this.userId, docId)
+      const canWrite = await auth.canWriteDoc(this.session, docKey)
       if (!canWrite) {
         const error = new AuthError(`Not authorized to write doc: ${docId}`)
         this.sendUpdateError(updateId, error.name, error.message)

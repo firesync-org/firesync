@@ -1,19 +1,27 @@
+import jwt from 'jsonwebtoken'
 import querystring from 'node:querystring'
 
-import { db } from '../../db/db'
-import {
-  BadRequestError,
-  UnexpectedInternalStateError
-} from '../../shared/errors'
-import { Role } from '../../shared/roles'
-import { tokens } from '../models/tokens'
+import { UnexpectedInternalStateError } from '../../shared/errors'
 import { IncomingMessage } from 'http'
+import { config } from '../../config'
+import {
+  BadRequestHttpError,
+  UnauthorizedHttpError
+} from '../http/helpers/errors'
+import { docKeyPatternToRegex } from '../lib/wildCardsToRegex'
 
-const READ_ROLES: Role[] = ['read', 'write', 'admin']
-const WRITE_ROLES: Role[] = ['write', 'admin']
+export type Role = 'read' | 'write'
+
+const isRole = (role: string): role is Role => {
+  return ['read', 'write'].includes(role)
+}
+
+export type Session = {
+  docs: Record<string, Role>
+}
 
 export const auth = {
-  async getUserIdFromRequest(request: IncomingMessage) {
+  async getSessionFromRequest(request: IncomingMessage): Promise<Session> {
     if (request.url === undefined) {
       throw new UnexpectedInternalStateError(
         'Expected request.url to be defined'
@@ -24,35 +32,56 @@ export const auth = {
     const accessToken = querystring.decode(query).access_token
 
     if (typeof accessToken !== 'string') {
-      throw new BadRequestError('Expected access_token in URL parameters')
+      throw new BadRequestHttpError('Expected access_token in URL parameters')
     }
 
-    const userId = await tokens.getUserIdFromAccessToken(accessToken)
-
-    return userId
+    return this.getSessionFromAccessToken(accessToken)
   },
 
-  async canReadDoc(userId: string, docId: string) {
-    if (!userId) return false
-    const role = await getRole(userId, docId)
-    if (role === undefined) return false
-    return READ_ROLES.includes(role)
+  getSessionFromAccessToken(accessToken: string): Session {
+    let payload
+    for (const secret of config.jwtAuthSecrets) {
+      try {
+        payload = jwt.verify(accessToken, secret)
+      } catch (error) {
+        continue
+      }
+      if (payload) {
+        break
+      }
+    }
+    if (!payload) {
+      throw new UnauthorizedHttpError('Invalid JWT: Invalid secret')
+    }
+    if (typeof payload !== 'object') {
+      throw new UnauthorizedHttpError('Invalid JWT: Bad payload')
+    }
+    const docs: Record<string, Role> = {}
+    for (const [docKey, role] of Object.entries(payload.docs || {})) {
+      if (typeof role === 'string' && isRole(role)) {
+        docs[docKey] = role
+      }
+    }
+    return { docs }
   },
 
-  async canWriteDoc(userId: string, docId: string) {
-    if (!userId) return false
-    const role = await getRole(userId, docId)
-    if (role === undefined) return false
-    return WRITE_ROLES.includes(role)
+  async canReadDoc(session: Session, docKey: string) {
+    const role = findRole(session, docKey)
+    return role && ['read', 'write'].includes(role)
+  },
+
+  async canWriteDoc(session: Session, docKey: string) {
+    const role = findRole(session, docKey)
+    return role && role === 'write'
   }
 }
 
-const getRole = async (userId: string, docId: string) => {
-  const role = await db
-    .knex('doc_roles')
-    .select('role')
-    .where('doc_id', docId)
-    .where('project_user_id', userId)
-    .first()
-  return role?.role
+const findRole = (session: Session, docKey: string) => {
+  for (const [docKeyPattern, role] of Object.entries(session.docs)) {
+    const regex = docKeyPatternToRegex(docKeyPattern)
+    if (docKey.match(regex)) {
+      return role
+    }
+  }
+  return null
 }
