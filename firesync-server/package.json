@@ -1,6 +1,6 @@
 {
   "name": "@firesync/server",
-  "version": "0.0.1-alpha.4",
+  "version": "0.0.1-alpha.5",
   "description": "An open source platform for building real-time collaboration apps",
   "author": "FireSync",
   "license": "Apache-2.0",
