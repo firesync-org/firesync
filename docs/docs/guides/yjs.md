@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Yjs
+# Yjs - Data Types
 
 ## Introduction to Y.js
 
