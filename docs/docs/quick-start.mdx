@@ -2,8 +2,8 @@
 sidebar_position: 1
 ---
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
 
 # Quick Start
 
@@ -16,25 +16,26 @@ You can run a [firesync-server](https://github.com/firesync-org/firesync) instan
 ## Authentication
 
 Your backend should sign a [JSON Web Token (JWT)](https://en.wikipedia.org/wiki/JSON_Web_Token) for your client to pass to FireSync for access:
+
 ```mdx-code-block
 <Tabs groupId="language">
 <TabItem value="nodejs" label="Node.js" default>
 ```
 
 ```js
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
 const payload = {
   docs: {
     // Grant write access to the document called 'foo' and readonly access to 'bar'
-    'foo': 'write',
-    'bar': 'read'
-  }
+    foo: "write",
+    bar: "read",
+  },
 };
 
 // Configure your secret via FS_JWT_AUTH_SECRET in firesync-server,
 // or find it in your project settings for FireSync Cloud
-const secret = '/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc';
+const secret = "/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc";
 
 // Pass token to your client
 const token = jwt.sign(payload, secret);
@@ -75,32 +76,31 @@ See the [Authentication Guide](/guides/authentication) for more details
 
 If we pass our JWT from above into the FireSync client, we will be able subscribe to the document called 'foo', and any edits we make will be immediately synced to any other clients subscribed to 'foo'
 
-
 ```mdx-code-block
 <Tabs groupId="environment">
 <TabItem value="firesync-cloud" label="FireSync Cloud" default>
 ```
 
 ```js
-import FireSync from '@firesync/client'
+import FireSync from "@firesync/client";
 const firesync = new FireSync({
-  projectName: 'acme-dev', // Your project name in FireSync Cloud
-  token: token // Generated above
-})
+  projectName: "acme-dev", // Your project name in FireSync Cloud
+  token: token, // jwt token Generated above from your server
+});
 
-const doc = firesync.subscribe('foo')
+const doc = firesync.subscribe("foo");
 
 // Get a real-time map that we can set key, value pairs on
-const map = doc.getMap('bar') 
-map.on('update', () => {
+const map = doc.getMap("bar");
+map.on("update", () => {
   // Triggered on either local updates, or updates from other clients
-  console.log('Map was updated: ', map.toJSON())
-})
+  console.log("Map was updated: ", map.toJSON());
+});
 
 // Set some values locally that will be synced to all clients
-map.set('name', 'Bob')
-map.set('age', 42)
-map.set('awesome', true)
+map.set("name", "Bob");
+map.set("age", 42);
+map.set("awesome", true);
 ```
 
 ```mdx-code-block
@@ -109,25 +109,25 @@ map.set('awesome', true)
 ```
 
 ```js
-import FireSync from '@firesync/client'
+import FireSync from "@firesync/client";
 const firesync = new FireSync({
-  baseUrl: 'http://localhost:5000', // The URL where firesync-server is running
-  token: token // Generated above
-})
+  baseUrl: "http://localhost:5000", // The URL where firesync-server is running
+  token: token, // Generated above
+});
 
-const doc = firesync.subscribe('foo')
+const doc = firesync.subscribe("foo");
 
 // Get a real-time map that we can set key, value pairs in
-const map = doc.getMap('bar') 
-map.on('update', () => {
+const map = doc.getMap("bar");
+map.on("update", () => {
   // Triggered on either local updates, or updates from other clients
-  console.log('Map was updated: ', map.toJSON())
-})
+  console.log("Map was updated: ", map.toJSON());
+});
 
 // Set some values locally that will be synced to all clients
-map.set('name', 'Bob')
-map.set('age', 42)
-map.set('awesome', true)
+map.set("name", "Bob");
+map.set("age", 42);
+map.set("awesome", true);
 ```
 
 ```mdx-code-block
@@ -136,4 +136,3 @@ map.set('awesome', true)
 ```
 
 The `doc` returned by `firesync.subscribe` is a [Yjs](/guides/yjs) doc that supports complex data structures with nested maps, lists and rich-text types.
-
