@@ -9,9 +9,12 @@ import TabItem from "@theme/TabItem";
 
 We'll run through a few basic concepts to get you started with your first real-time collaborative app with FireSync.
 
-## Configuring your backend
+## Setting up Firesync Backend
 
-You can run a [firesync-server](https://github.com/firesync-org/firesync) instance yourself or use [FireSync Cloud](https://www.firesync.cloud/) for an off-the-shelf solution.
+There are two ways to run FireSync
+
+- [FireSync Cloud](https://www.firesync.cloud/) - fully hosted instance which requires minimal setup.
+- [FireSync Server](https://github.com/firesync-org/firesync) - the open source core which you manage on your own infastructure.
 
 ## Authentication
 
@@ -85,7 +88,7 @@ If we pass our JWT from above into the FireSync client, we will be able subscrib
 import FireSync from "@firesync/client";
 const firesync = new FireSync({
   projectName: "acme-dev", // Your project name in FireSync Cloud
-  token: token, // jwt token Generated above from your server
+  token: token, // JWT token Generated above from your server
 });
 
 const doc = firesync.subscribe("foo");
