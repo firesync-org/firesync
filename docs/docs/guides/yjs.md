@@ -8,7 +8,7 @@ sidebar_position: 1
 
 FireSync is built upon the [y.js library](https://github.com/yjs/yjs). Y. gives us data structures allowing for fast and reliable collaboration, these data structures will be syncronised between all clients by firesync for you automatically.
 
-The three main datatypes available in Y.js are [Maps](#ymap), [Text](#ytext) and [Arrays](#yarray). Any combination of these types can be taken from a single document, they will all be automatically synced between firesync and anyone else subscribed to that doc. For example:
+The three main datatypes available in Y.js are [Maps](#ymap), [Text](#ytext), [Arrays](#yarray). Any combination of these types can be taken from a single document, they will all be automatically synced between firesync and anyone else subscribed to that doc. For example:
 
 ```js
 const doc = firesync.subscribe("my-document");
@@ -60,6 +60,14 @@ yarray.push("element2");
 
 // Retrieving an element
 console.log(yarray.get(0)); // Output: 'element1'
+```
+
+## XML
+
+Yjs also supports XML documents, this can be espeically for bindings to cetain libraries. XmlFragment, XmlText, and XmlElement are the three types of xml element available.
+
+```js
+
 ```
 
 ## Further information
