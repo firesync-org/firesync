@@ -10,18 +10,17 @@ export const config = {
     ssl:
       process.env.FS_DATABASE_SSL === 'true'
         ? {
-            rejectUnauthorized:
-              process.env.FS_DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
-            ca: process.env.FS_DATABASE_SSL_CA,
-            key: process.env.FS_DATABASE_SSL_KEY,
-            cert: process.env.FS_DATABASE_SSL_CERT
-          }
+          rejectUnauthorized:
+            process.env.FS_DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
+          ca: process.env.FS_DATABASE_SSL_CA,
+          key: process.env.FS_DATABASE_SSL_KEY,
+          cert: process.env.FS_DATABASE_SSL_CERT
+        }
         : false
   },
   trustProxy: process.env.FS_TRUST_PROXY === 'true',
   host: process.env.FS_HOST || 'localhost',
   port: parseInt(process.env.FS_PORT || '5000'),
-  jwtAuthSecrets: (process.env.FS_JWT_AUTH_SECRET || '').split(','),
 
   // Internal only, but can be updated for testing via debugRouter
   packAfterNUpdates: 64,
@@ -37,26 +36,31 @@ export const getProjectConfig = async (projectId: string) => {
 }
 
 const buildProjectConfigFromDb = async (projectId: string) => {
-  const projectConfig = await db
+  const projectConfigs = await db
     .knex('project_configs')
-    .select('host', 'fs_redeem_invite_url', 'fs_cors_allowed_origins')
-    .where('project_id', projectId)
-    .first()
+    .select(
+      'project_configs.host',
+      'project_configs.fs_cors_allowed_origins',
+      'jwt_secrets.secret'
+    )
+    .join('jwt_secrets', 'project_configs.id', 'jwt_secrets.project_config_id')
+    .where('project_configs.project_id', projectId)
+    .where('jwt_secrets.active', true)
+
+  const projectConfig = projectConfigs[0]
+  const jwtSecrets: string[] = projectConfigs.map((c) => c.secret)
 
   return {
-    host: projectConfig?.host,
-    corsAllowedOrigins: projectConfig?.fs_cors_allowed_origins || '*',
-    redeemInviteUrl:
-      projectConfig?.fs_redeem_invite_url || '/setup/redeem_invite_url',
-    googleAuth: { clientId: '1', clientSecret: '2', successRedirectUrl: '3' } // remove in seperate pr
+    id: projectConfig.id,
+    corsAllowedOrigins: projectConfig?.fs_cors_allowed_origins,
+    jwtAuthSecrets: jwtSecrets
   }
 }
 
 const buildProjectConfigFromEnvVars = () => {
   return {
     corsAllowedOrigins: process.env.FS_CORS_ALLOWED_ORIGINS || '*',
-    redeemInviteUrl:
-      process.env.FS_REDEEM_INVITE_URL || '/setup/redeem_invite_url',
-    googleAuth: { clientId: '1', clientSecret: '2', successRedirectUrl: '3' } // remove in seperate pr
+    jwtAuthSecrets: (process.env.FS_JWT_AUTH_SECRET || '').split(','),
+    id: 1
   }
 }

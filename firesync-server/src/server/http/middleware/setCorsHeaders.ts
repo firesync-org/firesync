@@ -10,7 +10,7 @@ export const setCorsHeadersForProject = requestHandler(
     const { corsAllowedOrigins } = await getProjectConfig(project.id)
     const origins = (corsAllowedOrigins || '')
       .split('\n')
-      .map((origin) => wildCardsToRegex(origin))
+      .map((origin: string) => wildCardsToRegex(origin))
     return cors({
       origin: origins,
       credentials: true,

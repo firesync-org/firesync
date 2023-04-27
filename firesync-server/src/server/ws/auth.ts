@@ -1,9 +1,12 @@
 import jwt from 'jsonwebtoken'
 import querystring from 'node:querystring'
+import { db } from '../../db/db'
 
 import { UnexpectedInternalStateError } from '../../shared/errors'
 import { IncomingMessage } from 'http'
-import { config } from '../../config'
+import { getProjectConfig } from '../../config'
+import models from '../../server/models'
+
 import {
   BadRequestHttpError,
   UnauthorizedHttpError
@@ -28,6 +31,8 @@ export const auth = {
       )
     }
 
+    const project = await models.projects.getProjectFromRequest(request)
+
     const query = request.url.split('?')[1] || ''
     const accessToken = querystring.decode(query).access_token
 
@@ -35,18 +40,24 @@ export const auth = {
       throw new BadRequestHttpError('Expected access_token in URL parameters')
     }
 
-    return this.getSessionFromAccessToken(accessToken)
+    return this.getSessionFromAccessToken(accessToken, project.id)
   },
 
-  getSessionFromAccessToken(accessToken: string): Session {
+  async getSessionFromAccessToken(
+    accessToken: string,
+    projectId: string
+  ): Promise<Session> {
     let payload
-    for (const secret of config.jwtAuthSecrets) {
+    const projectConfig = await getProjectConfig(projectId)
+
+    for (const secret of projectConfig.jwtAuthSecrets) {
       try {
         payload = jwt.verify(accessToken, secret)
       } catch (error) {
         continue
       }
       if (payload) {
+        secretUpdatedAtBump(projectConfig.id, secret) // fire and forget
         break
       }
     }
@@ -73,6 +84,19 @@ export const auth = {
   async canWriteDoc(session: Session, docKey: string) {
     const role = findRole(session, docKey)
     return role && role === 'write'
+  }
+}
+
+const secretUpdatedAtBump = (projectConfigId: string, secret: string) => {
+  if (process.env.FS_MULTI_PROJECT === 'true') {
+    db.knex('jwt_secrets')
+      .update({
+        updated_at: db.knex.raw('NOW()')
+      })
+      .where({
+        project_config_id: projectConfigId,
+        secret
+      })
   }
 }
 

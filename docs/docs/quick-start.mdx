@@ -16,7 +16,7 @@ There are two ways to run FireSync
 - [FireSync Cloud](https://www.firesync.cloud/) - fully hosted instance which requires minimal setup.
 - [FireSync Server](https://github.com/firesync-org/firesync) - A firesync-server you run on your own infastructure.
 
-## Authentication
+### Authentication
 
 Your backend should sign a [JSON Web Token (JWT)](https://en.wikipedia.org/wiki/JSON_Web_Token) for your client to pass to FireSync for access:
 
@@ -75,7 +75,11 @@ token = jwt.encode(payload, secret)
 
 See the [Authentication Guide](/guides/authentication) for more details
 
-## Syncing Changes
+## Client Setup
+
+First install the FireSync client:
+
+`npm install @firesync/client --save`
 
 If we pass our JWT from above into the FireSync client, we will be able subscribe to the document called 'foo', and any edits we make will be immediately synced to any other clients subscribed to 'foo'
 
@@ -115,7 +119,7 @@ map.set("awesome", true);
 import FireSync from "@firesync/client";
 const firesync = new FireSync({
   baseUrl: "http://localhost:5000", // The URL where firesync-server is running
-  token: token, // Generated above
+  token: token, // JWT token Generated above from your server
 });
 
 const doc = firesync.subscribe("foo");

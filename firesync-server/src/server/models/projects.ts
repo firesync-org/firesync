@@ -11,16 +11,18 @@ export const projects = {
     if (process.env.FS_MULTI_PROJECT === 'true') {
       const hostname = getHostName(req)
 
-      project = await db
-        .knex('projects')
-        .select('id')
+      const projectConfig = await db
+        .knex('project_configs')
+        .select('project_id')
         .where('host', hostname)
         .first()
-      if (project === undefined) {
+
+      if (projectConfig === undefined) {
         throw new NotFoundHttpError(
           `Project with host ${hostname} does not exist`
         )
       }
+      project = { id: projectConfig.project_id }
     } else {
       project = await db.knex('projects').select('id').first()
 
