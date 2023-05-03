@@ -15,7 +15,7 @@ export const useFireSync = () => {
 
   if (typeof token !== 'string' || typeof baseUrl !== 'string') {
     throw new Error(
-      'Please set FS_TOKEN and FS_BASE_URL as environment variables'
+      'Please set FS_DOCS_TOKEN and FS_DOCS_BASE_URL as environment variables'
     )
   }
 
