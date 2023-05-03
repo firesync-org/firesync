@@ -91,7 +91,7 @@ const secretUpdatedAtBump = (projectConfigId: string, secret: string) => {
   if (process.env.FS_MULTI_PROJECT === 'true') {
     db.knex('jwt_secrets')
       .update({
-        updated_at: db.knex.raw('NOW()')
+        last_used_at: db.knex.raw('NOW()')
       })
       .where({
         project_config_id: projectConfigId,
