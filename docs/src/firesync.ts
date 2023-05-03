@@ -1,10 +1,9 @@
-import { FireSync, Y } from '@firesync/client'
-import { useEffect, useState } from 'react'
+import { FireSync } from '@firesync/client'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 
 let firesync: FireSync | undefined
 
-const useFiresync = () => {
+export const useFireSync = () => {
   if (firesync) return firesync
 
   const {
@@ -27,24 +26,9 @@ const useFiresync = () => {
   return firesync
 }
 
-export const useFiresyncDoc = (docKey: string) => {
-  const firesync = useFiresync()
-
-  const [ydoc, setYdoc] = useState<Y.Doc | null>(null)
-
+export const useUniqueDocKey = (docKey: string) => {
   const namespace = useUniqueNamespace()
-
-  // TODO: Pull out the 123 into a unique value per session
-  const fullDocKey = `doc-examples/${namespace}/${docKey}`
-
-  useEffect(() => {
-    setYdoc(firesync.subscribe(fullDocKey))
-    return () => {
-      firesync.unsubscribe(fullDocKey)
-    }
-  }, [])
-
-  return ydoc
+  return `doc-examples/${namespace}/${docKey}`
 }
 
 /**

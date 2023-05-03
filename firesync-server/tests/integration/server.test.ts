@@ -95,6 +95,39 @@ describe('Server Syncing', () => {
   )
 
   test(
+    'should handle the client needing a partial set of updates with deletes',
+    testWrapper({}, async ({ docKey, server, ydoc: ydoc1, token }) => {
+      // Set up 2 docs with content in sync
+      const ydoc2 = new Y.Doc()
+      const yText1 = ydoc1.getText('t')
+      yText1.insert(0, 'foo bar baz')
+      Y.applyUpdate(ydoc2, Y.encodeStateAsUpdate(ydoc1))
+
+      // Apply a delete to doc 1 - get rid of 'bar '
+      yText1.delete(4, 4)
+
+      // Wait for delete to hit server
+      await tryUntil(async () => {
+        const updates = await server.getDocUpdates(docKey)
+        expect(updates.length).to.equal(2)
+      })
+
+      // confirm doc 2 needs a partial set of updates
+      const yText2 = ydoc2.getText('t')
+      expect(yText2.toString()).to.equal('foo bar baz')
+
+      // subscribe to doc 2
+      const client2 = server.getClient({ token })
+
+      client2.subscribe(docKey, ydoc2)
+
+      await tryUntil(async () => {
+        expect(yText2.toString()).to.equal('foo baz')
+      })
+    })
+  )
+
+  test(
     'client is up to date',
     testWrapper({}, async ({ docKey, client, server, ydoc }) => {
       const yText = ydoc.getText('t')
@@ -145,7 +178,10 @@ describe('Server Syncing', () => {
         yText.insert(3, 'baz')
 
         // Send updates to client again including new
-        client.sendUpdate(docKey, Y.encodeStateAsUpdate(ydoc))
+        client.__FOR_TESTING_ONLY_DO_NOT_USE.sendUpdate(
+          docKey,
+          Y.encodeStateAsUpdate(ydoc)
+        )
 
         await tryUntil(async () => {
           const sv = await server.getDocStateVector(docKey)
@@ -193,12 +229,9 @@ describe('Server Syncing', () => {
 
         // Don't send the next set of updates immediately
         client.chaosMonkey.ignoreUpdatesFromDocs.add(docKey)
-
         // Prevent client from reconnecting and sending
         // full update on error
-        client.reconnect = () => {
-          return null
-        }
+        client.chaosMonkey.reconnectOnError = false
 
         // Insert more updates, but get sv after some of them
         yText.insert(0, 'bar')
@@ -212,7 +245,7 @@ describe('Server Syncing', () => {
 
         // Send updates to client again including new
         const partialUpdate = Y.encodeStateAsUpdate(ydoc, partialSv)
-        client.sendUpdate(docKey, partialUpdate)
+        client.__FOR_TESTING_ONLY_DO_NOT_USE.sendUpdate(docKey, partialUpdate)
 
         await tryUntil(async () => {
           expect(error?.name).to.equal('BadRequestError')

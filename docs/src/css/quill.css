@@ -1,0 +1,4 @@
+/* Don't hide cursor name tags on top line */
+.ql-container {
+  overflow: initial !important;
+}

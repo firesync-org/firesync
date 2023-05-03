@@ -13,13 +13,13 @@ describe('Client', () => {
 
         // Make sure we have disconnected
         await tryUntil(async () => {
-          expect(client.disconnectsCount).to.be.greaterThan(0)
+          expect(client.stats.disconnectsCount).to.be.greaterThan(0)
         })
 
         // Make sure we reconnect
         await tryUntil(async () => {
           expect(client.connected).to.equal(true)
-          expect(client.connectsCount).to.be.greaterThan(1)
+          expect(client.stats.connectsCount).to.be.greaterThan(1)
         })
       })
     )
@@ -32,13 +32,13 @@ describe('Client', () => {
 
         // Make sure we have disconnected
         await tryUntil(async () => {
-          expect(client.disconnectsCount).to.be.greaterThan(0)
+          expect(client.stats.disconnectsCount).to.be.greaterThan(0)
         })
 
         // Shouldn't be trying to reconnect
         await tryUntil(async () => {
-          expect(client.nextConnectionAttemptDelay).to.equal(null)
-          expect(client.nextConnectionAttemptTimeout).to.equal(undefined)
+          expect(client.stats.nextConnectionAttemptDelay).to.equal(null)
+          expect(client.stats.nextConnectionAttemptTimeout).to.equal(undefined)
           expect(client.connected).to.equal(false)
         })
       })
@@ -52,14 +52,14 @@ describe('Client', () => {
 
         // Make sure we have disconnected
         await tryUntil(async () => {
-          expect(client.disconnectsCount).to.be.greaterThan(0)
+          expect(client.stats.disconnectsCount).to.be.greaterThan(0)
         })
 
         // Try to reconnect multiple times up to maxConnectionAttemptDelay
         await tryUntil(async () => {
-          expect(client.connectionAttempts).to.be.greaterThan(2)
-          expect(client.nextConnectionAttemptDelay).to.equal(
-            client.maxConnectionAttemptDelay
+          expect(client.stats.connectionAttempts).to.be.greaterThan(2)
+          expect(client.stats.nextConnectionAttemptDelay).to.equal(
+            client.stats.maxConnectionAttemptDelay
           )
         })
       })
@@ -74,7 +74,7 @@ describe('Client', () => {
 
         // Connect a few times
         await tryUntil(async () => {
-          expect(client.connectionAttempts).to.be.greaterThan(2)
+          expect(client.stats.connectionAttempts).to.be.greaterThan(2)
         })
 
         expect(client.connected).to.equal(false)
@@ -91,7 +91,7 @@ describe('Client', () => {
     test(
       'should stop trying to reconnect after a while',
       testWrapper({}, async ({ ydoc, docKey, client, server }) => {
-        client.stopConnectionAttemptsAfter = 100 // ms
+        client.connectionConfig({ stopConnectionAttemptsAfter: 100 }) // ms
 
         // Disconnect
         server.refuseConnections()
@@ -99,14 +99,14 @@ describe('Client', () => {
 
         // Make sure we have disconnected
         await tryUntil(async () => {
-          expect(client.disconnectsCount).to.be.greaterThan(0)
+          expect(client.stats.disconnectsCount).to.be.greaterThan(0)
         })
 
         // Shouldn't be trying to reconnect after a while
         await tryUntil(async () => {
-          expect(client.connectionAttempts).to.be.greaterThan(2)
-          expect(client.nextConnectionAttemptDelay).to.equal(null)
-          expect(client.nextConnectionAttemptTimeout).to.equal(undefined)
+          expect(client.stats.connectionAttempts).to.be.greaterThan(2)
+          expect(client.stats.nextConnectionAttemptDelay).to.equal(null)
+          expect(client.stats.nextConnectionAttemptTimeout).to.equal(undefined)
           expect(client.connected).to.equal(false)
         })
 
@@ -128,22 +128,22 @@ describe('Client', () => {
 
         // Make sure we have disconnected
         await tryUntil(async () => {
-          expect(client.disconnectsCount).to.be.greaterThan(0)
+          expect(client.stats.disconnectsCount).to.be.greaterThan(0)
         })
 
         // Try to reconnect multiple times up to maxConnectionAttemptDelay
         await tryUntil(async () => {
-          expect(client.connectionAttempts).to.be.greaterThan(2)
-          expect(client.nextConnectionAttemptDelay).to.equal(
-            client.maxConnectionAttemptDelay
+          expect(client.stats.connectionAttempts).to.be.greaterThan(2)
+          expect(client.stats.nextConnectionAttemptDelay).to.equal(
+            client.stats.maxConnectionAttemptDelay
           )
         })
 
         // Should reduce the delay after an update comes in
         ydoc.getText('t').insert(0, 'foo')
         await tryUntil(async () => {
-          expect(client.nextConnectionAttemptDelay).to.be.lessThan(
-            client.maxConnectionAttemptDelay
+          expect(client.stats.nextConnectionAttemptDelay).to.be.lessThan(
+            client.stats.maxConnectionAttemptDelay
           )
         })
       })
@@ -177,7 +177,7 @@ describe('Client', () => {
         })
 
         // Do initial sync
-        client.sendStateVector(docKey)
+        client.__FOR_TESTING_ONLY_DO_NOT_USE.sendStateVector(docKey)
         await tryUntil(async () => {
           expect(client.updatesSentCount).to.equal(1)
         })

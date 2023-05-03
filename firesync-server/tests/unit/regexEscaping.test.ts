@@ -47,11 +47,9 @@ describe('docKeyPatternToRegex', () => {
     for (const test of tests) {
       const regex = docKeyPatternToRegex(test.pattern)
       for (const match of test.match) {
-        console.log(match, regex)
         expect(match).to.match(regex)
       }
       for (const dontMatch of test.dontMatch) {
-        console.log(dontMatch, regex)
         expect(dontMatch).to.not.match(regex)
       }
     }

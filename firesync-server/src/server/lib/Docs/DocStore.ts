@@ -26,9 +26,28 @@ declare interface DocStore {
     event: 'update',
     listener: (docId: string, dbUpdateId: string, source: string) => void
   ): this
+  on(
+    event: 'awareness',
+    listener: (docId: string, update: Uint8Array, source: string) => void
+  ): this
 }
 
-const docChannelName = (docId: string) => `doc_updates:${docId}`
+export const docChannelName = (docId: string) => `doc:${docId}`
+
+type UpdateMessage = {
+  dbUpdateId: string
+  source: string
+}
+
+type AwarenessMessage = {
+  b64Update: string
+  source: string
+}
+
+type NotifyMessage = UpdateMessage | AwarenessMessage
+
+const isUpdateMessage = (message: NotifyMessage): message is UpdateMessage =>
+  (message as any).dbUpdateId !== undefined
 
 class DocStore extends EventEmitter {
   subscriber: Subscriber
@@ -43,19 +62,7 @@ class DocStore extends EventEmitter {
       if (!this.isSubscribed(docId)) {
         this.subscriber.notifications.on(
           docChannelName(docId),
-          async ({
-            dbUpdateId,
-            source
-          }: {
-            dbUpdateId: string
-            source: string
-          }) => {
-            logger.debug(
-              { dbUpdateId, source, docId },
-              'got notify message for doc'
-            )
-            this.emit('update', docId, dbUpdateId, source)
-          }
+          (message: NotifyMessage) => this.onNotifyMessage(docId, message)
         )
         await this.subscriber.listenTo(docChannelName(docId))
       }
@@ -121,6 +128,19 @@ class DocStore extends EventEmitter {
     const promise = stateChange()
     this.pendingDocStateChanges.set(docId, promise)
     await promise
+  }
+
+  private async onNotifyMessage(docId: string, message: NotifyMessage) {
+    if (isUpdateMessage(message)) {
+      const { dbUpdateId, source } = message
+      logger.debug({ dbUpdateId, source, docId }, 'got notify message for doc')
+      this.emit('update', docId, dbUpdateId, source)
+    } else {
+      // Awareness message
+      const { b64Update, source } = message
+      const update = new Uint8Array(Buffer.from(b64Update, 'base64'))
+      this.emit('awareness', docId, update, source)
+    }
   }
 
   async applyUpdate(docId: string, update: Uint8Array, source: string) {
@@ -189,6 +209,13 @@ class DocStore extends EventEmitter {
     const update = filterUpdates(updates, decodedSv)
     logger.debug({ docId, sv, update }, 'getStateAsUpdates')
     return update
+  }
+
+  publishAwareness(docId: string, update: Uint8Array, source: string) {
+    this.subscriber.notify(docChannelName(docId), {
+      b64Update: Buffer.from(update).toString('base64'),
+      source
+    })
   }
 }
 

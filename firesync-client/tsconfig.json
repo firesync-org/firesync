@@ -1,5 +1,21 @@
 {
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2019",
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "jsx": "react"
+  },
   "include": ["src", "tests"],
-  "exclude": ["**/dist"],
-  "extends": "../tsconfig.json"
+  "exclude": ["**/node_modules", "**/dist"]
 }

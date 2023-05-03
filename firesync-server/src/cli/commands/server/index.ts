@@ -15,7 +15,7 @@ export default class Server extends Command {
       char: 'h',
       summary: 'Host to bind to',
       env: 'FS_HOST',
-      default: 'localhost'
+      default: '0.0.0.0'
     }),
 
     port: Flags.integer({

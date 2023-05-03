@@ -1,4 +1,9 @@
 import * as Y from 'yjs'
+import {
+  Awareness,
+  applyAwarenessUpdate,
+  removeAwarenessStates
+} from 'y-protocols/awareness'
 import { EventEmitter } from 'events'
 
 import {
@@ -15,21 +20,23 @@ import {
   UpdateErrorMessage,
   ErrorFatalMessage,
   UnsubscribeResponseMessage,
-  UnsubscribeErrorMessage
+  UnsubscribeErrorMessage,
+  AwarenessUpdateMessage
 } from './shared/protocol'
 import logging from './logging'
-import {
-  AuthError,
-  BadParameterError,
-  BadRequestError,
-  ErrorsByName,
-  UnexpectedInternalStateError
-} from './shared/errors'
+import { BadRequestError, ErrorsByName } from './shared/errors'
 import { packUpdates } from './shared/yUtils'
+import { Connection } from './connection'
+import { Docs } from './docs'
 
-const logger = logging('connection')
+const logger = logging('firesync')
 
-export declare interface Connection {
+/** @ignore */
+export const FIRESYNC_SERVER_ORIGIN = Symbol('FIRESYNC_SERVER_ORIGIN')
+
+/** @ignore */
+// TODO: Move to event log or similar for testing/debugging
+export declare interface FireSync {
   on(event: 'message', listener: (message: Message) => void): this
   on(event: 'error', listener: (error: Error) => void): this
   on(
@@ -39,24 +46,35 @@ export declare interface Connection {
   on(event: 'updateAck', listener: (updateId: string) => void): this
 }
 
-const SECONDS = 1000
-
-enum SubscriptionStates {
-  SUBSCRIBING,
-  SUBSCRIBED,
-  UNSUBSCRIBING,
-  UNSUBSCRIBED
-}
-
-type DocState = {
-  docKey: string
-  ydoc: Y.Doc
-  currentSubscriptionState: SubscriptionStates
-  desiredSubscriptionState: SubscriptionStates
-  sentInitialUpdate: boolean
-  sessionDocId?: string
-}
-
+/**
+ * Parameters used to configure a new instance of a FireSync client.
+ * @typedef FireSyncOptions
+ * @type {object}
+ * @param {string} baseUrl The URL of your own firesync-server.
+ * @param {string} projectName The name of your project in FireSync Cloud.
+ * @param {string} token A JWT signed with your project secret with a list of docs that
+ * the client can access. See [Authentication](/guides/authentication) for more information
+ * @param {boolean} [connect=true] Whether FireSync should immediately connect to the
+ * server. Defaults to `true` if not provided.
+ * @param {WebSocket} [CustomWebSocket=window.WebSocket] Can be used to pass in a custom WebSocket
+ * implementation. This is useful for using a FireSync client instance on the server, where
+ * can pass in the WebSocket implementation from the [`ws` library](https://www.npmjs.com/package/ws).
+ * @example
+ * ```js
+ * new FireSync({
+ *   // If using FireSync cloud:
+ *   projectName: 'acme-dev',
+ *   // Or if using a local firesync-server:
+ *   // baseUrl: 'http://localhost:5000',
+ *
+ *   // A JWT token signed with your project secret
+ *   token: 'my-token',
+ *
+ *   // Whether to connect to the server immediately
+ *   connect: true
+ * })
+ * ```
+ */
 type UrlOptions =
   | {
       baseUrl: string
@@ -66,89 +84,346 @@ type UrlOptions =
       baseUrl?: string
       projectName: string
     }
-
-type Options = UrlOptions & {
+type FireSyncOptions = UrlOptions & {
   token?: string
   connect?: boolean
   CustomWebSocket?: any
 }
 
+/**
+ * @typicalname firesync
+ */
 export class FireSync extends EventEmitter {
-  private ws?: WebSocket | null
-  private baseUrl: string
-  private WebSocket: typeof WebSocket
-  private docs = new Map<string, DocState>()
-  token: string | undefined
-
-  // Used for configuring options that are generally only useful for testing
-  // and we definitely don't want to be different in real usage.
-  chaosMonkey = {
-    syncAfterSubscribe: true,
-    ignoreUpdatesFromDocs: new Set<string>()
-  }
-
+  /**
+   * Create a new instance of a FireSync client. You will typically need one instance per client
+   * in your application.
+   *
+   * @param {FireSyncOptions} options
+   *
+   * @example
+   * ```js
+   * import FireSync from '@firesync/client'
+   * const firesync = new FireSync({
+   *   // If using FireSync cloud:
+   *   projectName: 'acme-dev',
+   *   // Or if using a local firesync-server:
+   *   // baseUrl: 'http://localhost:5000',
+   *
+   *   // A JWT token signed with your project secret
+   *   token: 'my-token',
+   *
+   *   // Whether to connect to the server immediately
+   *   connect: true
+   * })
+   * ```
+   */
   constructor({
     baseUrl,
     projectName,
     connect = true,
     CustomWebSocket = WebSocket,
     token
-  }: Options) {
+  }: FireSyncOptions) {
     super()
 
+    let url = baseUrl
     if (baseUrl === undefined && projectName !== undefined) {
-      baseUrl = `https://${projectName}.firesync.live`
+      url = `https://${projectName}.firesync.live`
     }
-    if (!baseUrl) {
+    if (!url) {
       throw new Error(
         'Please configure FireSync with either a baseUrl or projectName parameter'
       )
     }
 
-    this.baseUrl = baseUrl
-    this.token = token
-
-    this.WebSocket = CustomWebSocket
-    if (!this.WebSocket) {
-      throw new BadParameterError(
-        'No global WebSocket found, please pass WebSocket constructor as option'
-      )
-    }
+    this.docs = this.initDocs()
+    this.connection = this.initConnection(url, token, CustomWebSocket)
 
     if (connect) {
       this.connect()
     }
   }
 
-  send(message: Uint8Array) {
-    if (!this._connected || !this.ws) {
-      // TODO: Queue these messages and send on connection?
-      logger.error('Attempting to send message while not connected')
-      return
-    }
-    this.ws.send(message)
+  /**
+   * Attempt to connect to the server.
+   *
+   * The FireSync client will attempt to connect to the server when first initialized, although
+   * this default behaviour can be overriden by passing `connect: false` when initializing.
+   *
+   * @example
+   * ```js
+   * const firesync = new FireSync({
+   *   // ...
+   *   connect: false
+   * })
+   * // Connect manually later
+   * firesync.connect()
+   * ```
+   */
+  connect() {
+    this.connection.connect()
   }
 
-  yDocUpdateHandler(docKey: string, update: Uint8Array, origin: any) {
-    this.recordActivity()
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      throw new UnexpectedInternalStateError(
-        `yDocHandler called for doc that doesn't exist: ${docKey}`
-      )
+  /**
+   * Disconnect from the server.
+   *
+   * @example
+   * ```js
+   * firesync.disconnect()
+   * ```
+   */
+  disconnect() {
+    this.connection.disconnect()
+  }
+
+  /**
+   * Returns true if the client is connected to the server, and false otherwise
+   * @readonly
+   * @returns {boolean}
+   */
+  get connected() {
+    return this.connection.connected
+  }
+
+  /**
+   * Subscribe to changes to the given document and return the
+   * a Yjs [Y.Doc](/guides/yjs) which is kept in sync with the FireSync backend.
+   *
+   * Any changes made locally to the Y.Doc will be sent to other subscribed clients, and
+   * the Y.Doc will received any changes made by other clients.
+   *
+   * If the doc has been previously unsubscribed then it will be resubscribed.
+   *
+   * @example
+   * ```js
+   * const doc = firesync.subscribe('foo')
+   * doc.on('update', () => {
+   *   // Will recieve local changes and changes from
+   *   // other subscribed clients
+   *   console.log('Doc was updated')
+   * })
+   * doc.getMap('user').set('name', 'Bob')
+   * ```
+   *
+   * @param {string} docKey The key that identifies the document in the FireSync backend
+   * @param {Y.Doc} [ydoc] An optional Y.Doc to use rather than returning a new instance
+   * @returns {Y.Doc}
+   */
+  subscribe(docKey: string, ydoc?: Y.Doc) {
+    const doc = this.docs.init(docKey, ydoc)
+
+    // We might be re-subscribing to an existing unsubscribed doc
+    doc.setWantToBeSubscribed()
+
+    // Subscribe if we aren't already. We don't need to do anything if we're
+    // UNSUBSCRIBING because handleUnsubscribeResponse checks if we want to be
+    // subscribed and triggers sendSubscribeRequest if so
+    if (doc.isUnsubscribed) {
+      this.sendSubscribeRequestIfConnected(docKey)
     }
-    if (this._connected) {
+
+    return doc.ydoc
+  }
+
+  /**
+   * Unsubscribe from the given document. The doc will no longer recieve changes made by other
+   * clients or send changes made locally to the server.
+   *
+   * @example
+   * ```js
+   * firesync.unsubscribe('foo')
+   * ```
+   *
+   * @param {string} docKey The key that identifies the document in the FireSync backend
+   */
+  unsubscribe(docKey: string) {
+    const doc = this.docs.getOrError(docKey)
+
+    if (doc.awareness) {
+      removeAwarenessStates(doc.awareness, [doc.ydoc.clientID], 'unsubscribe')
+    }
+
+    doc.setWantToBeUnsubscribed()
+
+    // Unsubscribe if we aren't already. We don't need to do anything if we're
+    // SUBSCRIBING because handleSubscribeResponse checks if we want to be
+    // unsubscribed and triggers sendUnsubscribeRequest if so
+    if (doc.isSubscribed) {
+      this.sendUnsubscribeRequest(docKey)
+    }
+  }
+
+  // TODO: Turn these into internal only test methods
+  isSubscribed(docKey: string) {
+    return this.docs.get(docKey)?.isSubscribed
+  }
+
+  isSubscribing(docKey: string) {
+    return this.docs.get(docKey)?.isSubscribing
+  }
+
+  isUnsubscribed(docKey: string) {
+    return this.docs.get(docKey)?.isUnsubscribed
+  }
+
+  isUnsubscribing(docKey: string) {
+    return this.docs.get(docKey)?.isUnsubscribing
+  }
+
+  /**
+   * Returns an Awareness instance which is synced with the FireSync backend
+   * and will send any awareness updates to other clients and receive awareness
+   * updates from other clients.
+   *
+   * @param {string} docKey The key that identified the document in the FireSync backend
+   * @param {Awareness} [awareness] An optional Awareness instance to use rather than returning a new instance
+   * @returns {Awareness}
+   */
+  awareness(docKey: string, awareness?: Awareness) {
+    const doc = this.docs.init(docKey)
+    return doc.initAwareness(awareness)
+  }
+
+  hasSentInitialUpdate(docKey: string) {
+    return this.docs.getOrError(docKey)?.sentInitialUpdate === true
+  }
+
+  get stats() {
+    return {
+      connectsCount: this.connection.connectsCount,
+      disconnectsCount: this.connection.disconnectsCount,
+      nextConnectionAttemptTimeout:
+        this.connection.nextConnectionAttemptTimeout,
+      nextConnectionAttemptDelay: this.connection.nextConnectionAttemptDelay,
+      maxConnectionAttemptDelay: this.connection.maxConnectionAttemptDelay,
+      connectionAttempts: this.connection.connectionAttempts
+    }
+  }
+
+  get token() {
+    return this.connection.token
+  }
+
+  set token(token: string | undefined) {
+    this.connection.token = token
+  }
+
+  connectionConfig({
+    stopConnectionAttemptsAfter,
+    maxConnectionAttemptDelay,
+    minConnectionAttemptDelay,
+    soonConnectionAttemptDelayThreshold
+  }: {
+    stopConnectionAttemptsAfter?: number
+    maxConnectionAttemptDelay?: number
+    minConnectionAttemptDelay?: number
+    soonConnectionAttemptDelayThreshold?: number
+  }) {
+    if (stopConnectionAttemptsAfter !== undefined) {
+      this.connection.stopConnectionAttemptsAfter = stopConnectionAttemptsAfter
+    }
+    if (maxConnectionAttemptDelay !== undefined) {
+      this.connection.maxConnectionAttemptDelay = maxConnectionAttemptDelay
+    }
+    if (minConnectionAttemptDelay !== undefined) {
+      this.connection.minConnectionAttemptDelay = minConnectionAttemptDelay
+    }
+    if (soonConnectionAttemptDelayThreshold !== undefined) {
+      this.connection.soonConnectionAttemptDelayThreshold =
+        soonConnectionAttemptDelayThreshold
+    }
+  }
+
+  get __FOR_TESTING_ONLY_DO_NOT_USE() {
+    return {
+      send: this.connection.send.bind(this.connection),
+      sendUpdate: this.sendUpdate.bind(this),
+      sendStateVector: this.sendStateVector.bind(this)
+    }
+  }
+
+  // Used for configuring options that are generally only useful for testing
+  // and we definitely don't want to be different in real usage.
+  // TODO: Move to internal only state
+  chaosMonkey = {
+    syncAfterSubscribe: true,
+    ignoreUpdatesFromDocs: new Set<string>(),
+    reconnectOnError: true
+  }
+
+  private docs: Docs
+  private connection: Connection
+
+  private initDocs() {
+    const docs = new Docs()
+    docs.on('update', (docKey, update, origin) => {
+      if (!this.chaosMonkey.ignoreUpdatesFromDocs.has(docKey)) {
+        try {
+          this.handleYDocUpdate(docKey, update, origin)
+        } catch (error) {
+          if (error instanceof Error) {
+            this.handleError(error)
+          } else {
+            throw error
+          }
+        }
+      }
+    })
+    docs.on('awareness', (docKey, update, origin) => {
+      try {
+        this.handleLocalAwarenessUpdate(docKey, update, origin)
+      } catch (error) {
+        if (error instanceof Error) {
+          this.handleError(error)
+        } else {
+          throw error
+        }
+      }
+    })
+    return docs
+  }
+
+  private initConnection(url: string, token?: string, CustomWebSocket?: any) {
+    const connection = new Connection({
+      url,
+      token,
+      CustomWebSocket
+    })
+    connection.on('beforeConnect', () => {
+      this.docs.resetSubscriptionStates()
+    })
+    connection.on('open', () => {
+      this.docs.keysToSubscribe.forEach((docKey) => {
+        try {
+          this.sendSubscribeRequest(docKey)
+        } catch (error) {
+          if (error instanceof Error) {
+            this.handleError(error)
+          } else {
+            throw error
+          }
+        }
+      })
+    })
+    connection.on('message', (event) => {
+      this.handleWebsocketMessage(event)
+    })
+    connection.on('error', (error) => {
+      this.handleError(error)
+    })
+    connection.on('disconnect', () => {
+      this.docs.removeAwarenessStates()
+    })
+    return connection
+  }
+
+  private handleYDocUpdate(docKey: string, update: Uint8Array, origin: any) {
+    this.connection.recordActivity()
+    if (this.connection.connected) {
       if (
+        this.docs.getOrError(docKey).readyToSendUpdate &&
         // Don't send updates that originally came from the server
-        origin !== this &&
-        // Only send updates after we've sent our initial batch of
-        // pending updates during the initial sync. Otherwise we
-        // might send an update that is later than one the server
-        // doesn't have yet.
-        doc.sentInitialUpdate &&
-        // Only send updates if we're subscribed. Otherwise, the update
-        // will get synced during the initial sync after subscription
-        doc.currentSubscriptionState === SubscriptionStates.SUBSCRIBED
+        origin !== FIRESYNC_SERVER_ORIGIN
       ) {
         this.sendUpdate(docKey, update)
       }
@@ -157,13 +432,38 @@ export class FireSync extends EventEmitter {
       // worry about dropping this update for now.
       // But do try to reconnect immediately if we've got new updates
       // to send
-      if (this._wantToBeConnected) {
-        this.reconnectWithDelay({ soon: true })
+      if (this.connection.wantToBeConnected) {
+        this.connection.reconnectWithDelay({ soon: true })
       }
     }
   }
 
-  websocketMessageHandler(event: MessageEvent) {
+  private handleLocalAwarenessUpdate(
+    docKey: string,
+    update: Uint8Array,
+    origin: any
+  ) {
+    this.connection.recordActivity()
+    if (this.connection.connected) {
+      if (
+        this.docs.getOrError(docKey).subscribed &&
+        // Don't send updates that originally came from the server
+        origin !== FIRESYNC_SERVER_ORIGIN
+      ) {
+        this.sendAwarenessUpdate(docKey, update)
+      }
+    } else {
+      // We will do a full resync on reconnect, so don't need to
+      // worry about dropping this update for now.
+      // But do try to reconnect immediately if we've got new updates
+      // to send
+      if (this.connection.wantToBeConnected) {
+        this.connection.reconnectWithDelay({ soon: true })
+      }
+    }
+  }
+
+  private handleWebsocketMessage(event: MessageEvent) {
     let message: Message
     try {
       message = decodeMessage(new Uint8Array(event.data))
@@ -184,17 +484,27 @@ export class FireSync extends EventEmitter {
     this.emit('message', message)
 
     if (message.messageType === MessageType.UPDATE) {
-      this.recordActivity()
+      this.connection.recordActivity()
     }
 
-    this.handleSyncMessage(message)
+    try {
+      this.handleSyncMessage(message)
+    } catch (error) {
+      if (error instanceof Error) {
+        this.handleError(error)
+      } else {
+        throw error
+      }
+    }
   }
 
-  handleError(error: Error) {
+  private handleError(error: Error) {
     if (error instanceof BadRequestError) {
       // Server sent something malformed that we didn't expect, so try
       // disconnecting and reconnecting
-      this.reconnect()
+      if (this.chaosMonkey.reconnectOnError) {
+        this.connection.reconnect()
+      }
     }
 
     if (this.listenerCount('error') > 0) {
@@ -240,6 +550,9 @@ export class FireSync extends EventEmitter {
       case MessageType.ERROR_FATAL:
         this.handleIncomingErrorFatal(message)
         break
+      case MessageType.AWARENESS_UPDATE:
+        this.handleIncomingAwarenessUpdate(message)
+        break
       default:
         this.handleError(
           new BadRequestError(`Unknown message type: ${message.messageType}`)
@@ -247,120 +560,13 @@ export class FireSync extends EventEmitter {
     }
   }
 
-  // The client and server talk in session ids, which are short hands
-  // for specific docs to avoid sending the entire doc name with each
-  // small update. We get assigned a session id for each doc from the
-  // server, and track the mapping here as in this.docs.sessionDocId
-  private docKeysByDocIds: Record<string, string> = {}
-  private resetSubscribedDocs() {
-    this.docKeysByDocIds = {}
-    this.docs.forEach((doc) => {
-      delete doc.sessionDocId
-    })
-  }
-
-  subscribe(docKey: string, ydoc?: Y.Doc) {
-    // Make sure we have a doc and that we aren't overwriting an
-    // existing one
-    let doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      if (ydoc === undefined) {
-        ydoc = new Y.Doc()
-      }
-      doc = {
-        docKey,
-        ydoc,
-        desiredSubscriptionState: SubscriptionStates.SUBSCRIBED,
-        currentSubscriptionState: SubscriptionStates.UNSUBSCRIBED,
-        sentInitialUpdate: false
-      }
-      ydoc.on('update', (update: Uint8Array, origin: any) => {
-        if (!this.chaosMonkey.ignoreUpdatesFromDocs.has(docKey)) {
-          this.yDocUpdateHandler(docKey, update, origin)
-        }
-      })
-      this.docs.set(docKey, doc)
-    } else {
-      if (ydoc !== undefined && doc.ydoc !== ydoc) {
-        throw new Error(
-          `Already subscribed to ${docKey} with an existing Y.Doc`
-        )
-      }
-      ydoc = doc.ydoc
-    }
-
-    // We might be re-subscribing to an existing unsubscribed doc
-    doc.desiredSubscriptionState = SubscriptionStates.SUBSCRIBED
-
-    // Subscribe if we aren't already. We don't need to do anything if we're
-    // UNSUBSCRIBING because handleUnsubscribeResponse checks if we want to be
-    // subscribed and triggers sendSubscribeRequest if so
-    if (doc.currentSubscriptionState === SubscriptionStates.UNSUBSCRIBED) {
-      this.sendSubscribeRequestIfConnected(docKey)
-    }
-
-    return ydoc
-  }
-
-  unsubscribe(docKey: string) {
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      throw new UnexpectedInternalStateError(
-        `connection is not subscribed to ${docKey}`
-      )
-    }
-
-    doc.desiredSubscriptionState = SubscriptionStates.UNSUBSCRIBED
-
-    // Unsubscribe if we aren't already. We don't need to do anything if we're
-    // SUBSCRIBING because handleSubscribeResponse checks if we want to be
-    // unsubscribed and triggers sendUnsubscribeRequest if so
-    if (doc.currentSubscriptionState === SubscriptionStates.SUBSCRIBED) {
-      this.sendUnsubscribeRequest(docKey)
-    }
-  }
-
-  isSubscribed(docKey: string) {
-    return (
-      this.docs.get(docKey)?.currentSubscriptionState ===
-      SubscriptionStates.SUBSCRIBED
-    )
-  }
-
-  isSubscribing(docKey: string) {
-    return (
-      this.docs.get(docKey)?.currentSubscriptionState ===
-      SubscriptionStates.SUBSCRIBING
-    )
-  }
-
-  isUnsubscribed(docKey: string) {
-    return (
-      this.docs.get(docKey)?.currentSubscriptionState ===
-      SubscriptionStates.UNSUBSCRIBED
-    )
-  }
-
-  isUnsubscribing(docKey: string) {
-    return (
-      this.docs.get(docKey)?.currentSubscriptionState ===
-      SubscriptionStates.UNSUBSCRIBING
-    )
-  }
-
-  sendSubscribeRequest(docKey: string) {
+  private sendSubscribeRequest(docKey: string) {
     logger.debug('Sending subscription request', docKey)
 
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
-    doc.currentSubscriptionState = SubscriptionStates.SUBSCRIBING
+    const doc = this.docs.getOrError(docKey)
+    doc.setSubscribing()
 
-    this.send(
+    this.connection.send(
       encodeMessage({
         messageType: MessageType.SUBSCRIBE_REQUEST,
         docKey
@@ -368,8 +574,8 @@ export class FireSync extends EventEmitter {
     )
   }
 
-  sendSubscribeRequestIfConnected(docKey: string) {
-    if (this._connected) {
+  private sendSubscribeRequestIfConnected(docKey: string) {
+    if (this.connection.connected) {
       this.sendSubscribeRequest(docKey)
     }
   }
@@ -380,18 +586,10 @@ export class FireSync extends EventEmitter {
   }: SubscribeResponseMessage) {
     logger.debug('Received subscribe response', docKey, sessionDocId)
 
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
-    doc.currentSubscriptionState = SubscriptionStates.SUBSCRIBED
-    doc.sessionDocId = sessionDocId
-    this.docKeysByDocIds[sessionDocId] = docKey
+    const doc = this.docs.getOrError(docKey)
+    doc.setSubscribed(sessionDocId)
 
-    if (doc.desiredSubscriptionState === SubscriptionStates.UNSUBSCRIBED) {
+    if (doc.wantToBeUnsubscribed) {
       // We might have been unsubscribed while we were subscribing
       this.sendUnsubscribeRequest(docKey)
     } else {
@@ -401,6 +599,9 @@ export class FireSync extends EventEmitter {
       if (this.chaosMonkey.syncAfterSubscribe) {
         this.sendStateVector(docKey)
       }
+
+      // Immediately send our awareness state
+      doc.bumpAwareness()
     }
   }
 
@@ -418,31 +619,19 @@ export class FireSync extends EventEmitter {
     this.handleError(error)
   }
 
-  sendUnsubscribeRequest(docKey: string) {
+  private sendUnsubscribeRequest(docKey: string) {
     logger.debug('Send unsubscribe request', {
       docKey
     })
 
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
-    doc.currentSubscriptionState = SubscriptionStates.UNSUBSCRIBING
+    const doc = this.docs.getOrError(docKey)
+    doc.setUnsubscribing()
 
-    const sessionDocId = doc.sessionDocId
-    if (sessionDocId === undefined) {
-      this.handleError(
-        new BadParameterError(`Doc is not subscribed: ${docKey}`)
-      )
-      return
-    }
+    const sessionDocId = doc.getSessionDocIdOrError()
 
     logger.debug('Sending unsubscribe request', { docKey, sessionDocId })
 
-    this.send(
+    this.connection.send(
       encodeMessage({
         messageType: MessageType.UNSUBSCRIBE_REQUEST,
         sessionDocId
@@ -450,8 +639,8 @@ export class FireSync extends EventEmitter {
     )
   }
 
-  sendUnsubscribeRequestIfConnected(docKey: string) {
-    if (this._connected) {
+  private sendUnsubscribeRequestIfConnected(docKey: string) {
+    if (this.connection.connected) {
       this.sendUnsubscribeRequest(docKey)
     }
   }
@@ -461,30 +650,12 @@ export class FireSync extends EventEmitter {
   }: UnsubscribeResponseMessage) {
     logger.debug('Received unsubscribe response', sessionDocId)
 
-    const docKey = this.docKeysByDocIds[sessionDocId]
+    const doc = this.docs.getBySessionDocIdOrError(sessionDocId)
+    doc.setUnsubscribed()
 
-    if (docKey === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
-
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
-
-    doc.currentSubscriptionState = SubscriptionStates.UNSUBSCRIBED
-    delete doc.sessionDocId
-    delete this.docKeysByDocIds[sessionDocId]
-
-    if (doc.desiredSubscriptionState === SubscriptionStates.SUBSCRIBED) {
+    if (doc.wantToBeSubscribed) {
       // We might have been unsubscribed while we were subscribing
-      this.sendSubscribeRequest(docKey)
+      this.sendSubscribeRequest(doc.docKey)
     }
   }
 
@@ -502,28 +673,15 @@ export class FireSync extends EventEmitter {
     this.handleError(error)
   }
 
-  sendStateVector(docKey: string) {
+  private sendStateVector(docKey: string) {
     logger.debug('Sending client state vector', docKey)
 
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
-
-    const sessionDocId = doc.sessionDocId
-    if (sessionDocId === undefined) {
-      this.handleError(
-        new BadParameterError(`Doc is not subscribed: ${docKey}`)
-      )
-      return
-    }
+    const doc = this.docs.getOrError(docKey)
+    const sessionDocId = doc.getSessionDocIdOrError()
 
     const sv = Y.encodeStateVector(doc.ydoc)
 
-    this.send(
+    this.connection.send(
       encodeMessage({
         messageType: MessageType.SYNC_STATE_VECTOR,
         sessionDocId,
@@ -536,19 +694,12 @@ export class FireSync extends EventEmitter {
     sessionDocId,
     stateVector: sv
   }: StateVectorMessage) {
-    const docKey = this.docKeysByDocIds[sessionDocId]
-    if (docKey === undefined) {
+    const doc = this.docs.getBySessionDocId(sessionDocId)
+    if (doc === undefined) {
       // Doc has been unsubscribed while this was inflight
       return
     }
-
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
+    const docKey = doc.docKey
 
     logger.debug('Received server state vector', { docKey }, () =>
       Y.decodeStateVector(sv)
@@ -560,10 +711,6 @@ export class FireSync extends EventEmitter {
       this.sendUpdate(docKey, update)
     }
     doc.sentInitialUpdate = true
-  }
-
-  hasSentInitialUpdate(docKey: string) {
-    return this.docs.get(docKey)?.sentInitialUpdate === true
   }
 
   private _pendingUpdates = new Map<string, Uint8Array[]>()
@@ -582,24 +729,11 @@ export class FireSync extends EventEmitter {
     return this._updatesSentCount
   }
 
-  sendUpdate(docKey: string, update: Uint8Array) {
+  private sendUpdate(docKey: string, update: Uint8Array) {
     logger.debug('Sending update', docKey, () => Y.decodeUpdate(update))
 
-    const doc = this.docs.get(docKey)
-    if (doc === undefined) {
-      this.handleError(
-        new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-      )
-      return
-    }
-
-    const sessionDocId = doc.sessionDocId
-    if (sessionDocId === undefined) {
-      this.handleError(
-        new BadParameterError(`Doc is not subscribed: ${docKey}`)
-      )
-      return
-    }
+    const doc = this.docs.getOrError(docKey)
+    const sessionDocId = doc.getSessionDocIdOrError()
 
     let pendingUpdates = this._pendingUpdates.get(sessionDocId)
     if (!pendingUpdates) {
@@ -629,7 +763,7 @@ export class FireSync extends EventEmitter {
       const updateId = this._updatesSentCount++
       this._inflightUpdateId = updateId
 
-      this.send(
+      this.connection.send(
         encodeMessage({
           messageType: MessageType.UPDATE,
           updateId,
@@ -672,25 +806,18 @@ export class FireSync extends EventEmitter {
 
   private handleIncomingUpdate({ updates }: UpdateMessage) {
     updates.forEach((update, sessionDocId) => {
-      const docKey = this.docKeysByDocIds[sessionDocId]
-      if (docKey === undefined) {
+      const doc = this.docs.getBySessionDocId(sessionDocId)
+      if (doc === undefined) {
         // Doc has been unsubscribed while this was inflight
         return
       }
-
-      const doc = this.docs.get(docKey)
-      if (doc === undefined) {
-        this.handleError(
-          new UnexpectedInternalStateError(`Doc does not exist: ${docKey}`)
-        )
-        return
-      }
+      const docKey = doc.docKey
 
       logger.debug('Received server update', { docKey }, () =>
         Y.decodeUpdate(update)
       )
 
-      Y.applyUpdate(doc.ydoc, update, this)
+      Y.applyUpdate(doc.ydoc, update, FIRESYNC_SERVER_ORIGIN)
 
       this.emit('update', docKey, update)
     })
@@ -721,301 +848,41 @@ export class FireSync extends EventEmitter {
     return error
   }
 
-  // Connection Logic
-  // ----------------
-  // connected records whether we have an active websocket connection
-  // open or not.
-  private _connected = false
-  get connected() {
-    return this._connected
-  }
-
-  private _connecting = false
-  get connecting() {
-    return this._connecting
-  }
-
-  // wantToBeConnected is set when connect() is called and unset when
-  // disconnect() is called. It prevents us trying to reconnect if we've
-  // been explicitly disconnected.
-  private _wantToBeConnected = false
-  get wantToBeConnected() {
-    return this._wantToBeConnected
-  }
-
-  // When our connection drops, but we still want to be connected, we
-  // will start trying to reconnect with a back-off. We start at a randomised
-  // delay based on time since lastActivityTimestamp, and then exponentially
-  // increase with a factor of connectionDelayIncreaseFactor up to maxConnectionAttemptDelay.
-  private _nextConnectionAttemptDelay: number | null = null
-  get nextConnectionAttemptDelay() {
-    return this._nextConnectionAttemptDelay
-  }
-
-  private _nextConnectionAttemptTimeout:
-    | ReturnType<typeof setTimeout>
-    | undefined
-
-  get nextConnectionAttemptTimeout() {
-    return this._nextConnectionAttemptTimeout
-  }
-
-  private lastActivityTimestamp: number | null = null
-  connectionDelayIncreaseFactor = 1.5
-  minConnectionAttemptDelay = 1 * SECONDS
-  maxConnectionAttemptDelay = 30 * SECONDS
-  // Stop reconnecting if we haven't connected after stopConnectionAttemptsAfter
-  // If an update or activity happens, we will still try to reconnect
-  stopConnectionAttemptsAfter = 60 * SECONDS
-  private _startedConnectionAttemptsAt: number | null = null
-  // If the user starts typing, then reconnect soon, with
-  // soonConnectionAttemptDelayThreshold as our definition of 'soon'.
-  soonConnectionAttemptDelayThreshold = 5 * SECONDS
-  // Some record keeping for testing and debugging
-  private _connectsCount = 0
-  get connectsCount() {
-    return this._connectsCount
-  }
-
-  private _connectionAttempts = 0
-  get connectionAttempts() {
-    return this._connectionAttempts
-  }
-
-  private _disconnectsCount = 0
-  get disconnectsCount() {
-    return this._disconnectsCount
-  }
-
-  async connect() {
-    this._connectionAttempts++
-    this._wantToBeConnected = true
-
-    logger.debug(
-      {
-        connected: this.connected,
-        connecting: this.connecting
-      },
-      'connect'
-    )
-
-    if (this._connected || this._connecting) return
-
-    this._connecting = true
-
-    this.docs.forEach((doc) => {
-      doc.sentInitialUpdate = false
-      doc.currentSubscriptionState = SubscriptionStates.UNSUBSCRIBED
+  private sendAwarenessUpdate(docKey: string, update: Uint8Array) {
+    logger.debug('sendAwarenessUpdate', {
+      docKey
     })
 
-    // http:// -> ws://, https:// -> wss://
-    // TODO: What about // as a protocol?
-    const url = `${this.baseUrl.replace(
-      /^http/,
-      'ws'
-    )}?access_token=${encodeURIComponent(this.token || '')}`
+    const doc = this.docs.getOrError(docKey)
+    const sessionDocId = doc.getSessionDocIdOrError()
 
-    if (this.ws) {
-      throw new UnexpectedInternalStateError(
-        'Unexpectedly trying to create new WebSocket while existing socket is live'
-      )
-    }
-    this.ws = new this.WebSocket(url)
-    this.ws.binaryType = 'arraybuffer'
-
-    this.resetSubscribedDocs()
-
-    this.ws.onopen = () => {
-      this._connected = true
-      this._connecting = false
-      this._connectsCount++
-      this.resetReconnectionAttempts()
-
-      this.docs.forEach((doc) => {
-        if (doc.desiredSubscriptionState === SubscriptionStates.SUBSCRIBED) {
-          this.sendSubscribeRequest(doc.docKey)
-        }
+    this.connection.send(
+      encodeMessage({
+        messageType: MessageType.AWARENESS_UPDATE,
+        sessionDocId,
+        update
       })
-    }
-
-    this.ws.onmessage = this.websocketMessageHandler.bind(this)
-
-    this.ws.onerror = (event) => {
-      this._connected = false
-      this._connecting = false
-      const message =
-        ((event as any).message as string | undefined) || 'Unexpected error'
-      logger.log('ws.onerror', message)
-      if (message.match(/401/)) {
-        this.handleError(new AuthError('Invalid Auth Credentials'))
-      } else {
-        this.handleError(new Error(message))
-      }
-    }
-
-    this.ws.onclose = () => {
-      logger.debug(
-        {
-          wantToBeConnected: this._wantToBeConnected
-        },
-        'ws.onclose'
-      )
-      this._connected = false
-      this._connecting = false
-      this._disconnectsCount++
-      if (this._wantToBeConnected) {
-        this.reconnectWithDelay()
-      }
-      this.ws = null
-    }
-  }
-
-  disconnect() {
-    this._wantToBeConnected = false
-    if (this.ws) {
-      this.ws.close()
-    }
-  }
-
-  reconnect() {
-    this._wantToBeConnected = true
-    if (this.ws) {
-      this.ws.close()
-    }
-    this.connect()
-  }
-
-  private reconnectWithDelay({ soon = false }: { soon?: boolean } = {}) {
-    // Overview of reconnectWithDelay logic
-    // ------------------------------------
-    // * Create a setTimeout to attempt a reconnect after nextConnectionAttemptDelay ms.
-    // * If nextConnectionAttemptDelay isn't set yet, initialize it with random jitter.
-    // * If nextConnectionAttemptTimeout exists then a setTimeout is already in progress so
-    //   we don't need to do anything
-    // * If soon = true, then clear any existing setTimeout, and set nextConnectionAttemptDelay
-    //   based on soonConnectionAttemptDelayThreshold. This ensures we reconnect soon.
-    // * Increase nextConnectionAttemptDelay by connectionDelayIncreaseFactor so that the next
-    //   connection attempt is further delayed, up to maxConnectionAttemptDelay
-
-    if (soon) {
-      if (
-        this._nextConnectionAttemptDelay === null ||
-        this._nextConnectionAttemptDelay >
-          this.soonConnectionAttemptDelayThreshold
-      ) {
-        // Jump ahead of an existing running setTimeout which might be running
-        // with a long delay if we've been trying to reconnect for a while
-        this.resetReconnectionAttempts()
-        this._nextConnectionAttemptDelay =
-          this.getInitialConnectionAttemptDelay({
-            max: this.soonConnectionAttemptDelayThreshold
-          })
-      }
-    }
-
-    if (!this._startedConnectionAttemptsAt) {
-      this._startedConnectionAttemptsAt = Date.now()
-    }
-
-    if (!this._nextConnectionAttemptDelay) {
-      this._nextConnectionAttemptDelay = this.getInitialConnectionAttemptDelay()
-    }
-
-    const alreadyReconnecting = !!this._nextConnectionAttemptTimeout
-
-    const connectionAttemptsDuration =
-      Date.now() - this._startedConnectionAttemptsAt
-    const stopConnectionAttempts =
-      connectionAttemptsDuration > this.stopConnectionAttemptsAfter
-
-    logger.debug(
-      {
-        nextConnectionAttemptDelay: this._nextConnectionAttemptDelay,
-        alreadyReconnecting,
-        stopConnectionAttempts,
-        soon
-      },
-      'reconnecting with delay'
     )
+  }
 
-    if (alreadyReconnecting) {
+  private handleIncomingAwarenessUpdate({
+    update,
+    sessionDocId
+  }: AwarenessUpdateMessage) {
+    const doc = this.docs.getBySessionDocId(sessionDocId)
+    if (doc === undefined) {
+      // Doc has been unsubscribed while this was inflight
       return
     }
+    const docKey = doc.docKey
 
-    if (stopConnectionAttempts) {
-      this.resetReconnectionAttempts()
-      return
+    if (doc.awareness !== undefined) {
+      applyAwarenessUpdate(doc.awareness, update, FIRESYNC_SERVER_ORIGIN)
     }
 
-    this._nextConnectionAttemptTimeout = setTimeout(() => {
-      this._nextConnectionAttemptTimeout = undefined
-      if (this._wantToBeConnected) {
-        this.connect()
-      }
-    }, this._nextConnectionAttemptDelay)
-
-    // Increase delay exponentially up to maxConnectionAttemptDelay
-    this._nextConnectionAttemptDelay = Math.min(
-      this._nextConnectionAttemptDelay * this.connectionDelayIncreaseFactor,
-      this.maxConnectionAttemptDelay
-    )
-  }
-
-  private reconnectNow() {
-    this.resetReconnectionAttempts()
-    this.connect()
-  }
-
-  private resetReconnectionAttempts() {
-    this._nextConnectionAttemptDelay = null
-    clearTimeout(this._nextConnectionAttemptTimeout)
-    this._nextConnectionAttemptTimeout = undefined
-    this._startedConnectionAttemptsAt = null
-  }
-
-  private getInitialConnectionAttemptDelay({
-    max = this.maxConnectionAttemptDelay
-  }: { max?: number } = {}) {
-    // Base the size of our initial delay on how active the connection is.
-    // If there is recent activity then connect within a similar time period.
-    // If there is less activity, we can wait longer to reconnect.
-    // We will always attempt to reconnect if we get some updates to the doc anyway.
-
-    // If there hasn't been any activity yet, default to connecting again soon.
-    let delayMagnitude = this.minConnectionAttemptDelay
-    if (this.lastActivityTimestamp) {
-      const timeSinceLastActivity = Date.now() - this.lastActivityTimestamp
-      logger.debug(
-        {
-          timeSinceLastActivity
-        },
-        'timeSinceLastActivity'
-      )
-      delayMagnitude = Math.min(timeSinceLastActivity, max)
-    }
-
-    const delay = Math.max(
-      // Don't be less than minConnectionAttemptDelay and in particular
-      // don't be zero, otherwise the delay will never increase when multiplied
-      // by connectionDelayIncreaseFactor.
-      this.minConnectionAttemptDelay,
-      1,
-      // Randomize the delay to between 0 and delayMagnitude to add some jitter
-      // to avoid a stampede of reconnects to the server
-      Math.floor(Math.random() * delayMagnitude)
-    )
-
-    logger.debug(
-      {
-        delayMagnitude,
-        delay
-      },
-      'reconnecting with delay'
-    )
-    return delay
-  }
-
-  private recordActivity() {
-    this.lastActivityTimestamp = Date.now()
+    logger.debug('Received server awareness message', {
+      docKey,
+      state: Object.fromEntries(doc.awareness?.getStates() || new Map())
+    })
   }
 }

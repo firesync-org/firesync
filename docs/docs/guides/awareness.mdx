@@ -1,0 +1,81 @@
+---
+sidebar_position: 2
+---
+
+import BrowserOnly from '@docusaurus/BrowserOnly';
+
+# Awareness
+
+FireSync supports the [Yjs Awareness Protocol](https://docs.yjs.dev/api/about-awareness) which can be used for syncing temporary state between connected clients such as who is online, cursor positions, and other state that doesn't need to be saved.
+
+## Example
+
+Let's look at a quick example showing how to use awareness to track online users.
+
+
+:::tip Subscribe to doc
+
+To use awareness, you must first subscribe to the doc with the same `docKey` with `firesync.subscribe(docKey)`.
+
+:::
+
+
+```js
+const docKey = 'my-document'
+firesync.subscribe(docKey)
+const awareness = firesync.awareness(docKey)
+
+// Listen for changes to who is connected
+awareness.on('change', () => {
+  // Returns a Map of client id to user state
+  const clientStates = awareness.getStates()
+  
+  console.log('Online users are:')
+  for (const clientState of clientStates.values()) {
+    console.log(clientState.user.name)
+  }
+})
+
+// Set our own name for other users to see
+awareness.setLocalStateField('user', {
+  name: 'Bob'
+})
+```
+
+## How it works
+
+Each connected client has its own entry in `awareness.getStates()`. The key corresponds to the client id and the value is a javascript object that clients can store arbitrary data on depending on what information you want to sync between clients.
+
+:::tip Client Ids
+
+Note that the client id is not the same as the user id in your system. The client id is unique to each browser tab, so if a user has multiple tabs open they may have multiple entries in `awareness.getStates()` with different client ids.
+
+:::
+
+When a client disconnects, their entry is automatically removed from the awareness state. Clients send a regular heartbeat message and the client will also be removed from the awareness state if a heartbeat message doesn't arrive for over 30 seconds.
+
+## More Examples
+
+### Rich text cursors
+
+The bindings for rich-text editors like [Quill](/guides/rich-text/quill) can use an awareness instance to sync data about where users cursors are:
+
+```js
+const doc = firesync.subscribe(docKey)
+const awareness = firesync.awareness(docKey)
+const quill = document.getElementById('quill')
+const binding = new QuillBinding(doc.getText('t'), quill, awareness)
+```
+
+:::info Live Example
+
+This rich text editor below is a Quill instance connected to FireSync. Open this page in another browser to see the collaboration in action, or share this URL with someone else.
+
+:::
+
+<BrowserOnly>
+  {() => {
+    const { QuillEditor } = require('@site/src/components/QuillEditor');
+    return <QuillEditor docKey="awareness-cursors" initialValue="This editor supports real-time collaboration with shared cursors. Open in another tab to try it out!" />
+  }}
+</BrowserOnly>

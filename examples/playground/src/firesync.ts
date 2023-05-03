@@ -12,9 +12,9 @@ if (!port) {
   port = '5000'
 }
 
-export const useFiresync = () => {
+export const useFireSync = () => {
   const [inited, setInited] = useState(false)
-  const [firesync, setFiresync] = useState<Firesync | null>(null)
+  const [firesync, setFiresync] = useState<Firesync | undefined>()
 
   useEffect(() => {
     if (!inited) {

@@ -1,7 +1,7 @@
 import { logging } from '../lib/Logging/Logger'
 import { db } from '../../db/db'
 import { UnexpectedInternalStateError } from '../../shared/errors'
-import { packUpdates } from '../../shared/yUtils'
+import { encodeUpdate, packUpdates } from '../../shared/yUtils'
 import { config } from '../../config'
 import { Y } from '../../y'
 
@@ -16,10 +16,15 @@ export const updates = {
   ) {
     logger.debug({ docId, update, newSv }, 'writeUpdate')
 
+    const { structs, ds } = Y.decodeUpdate(update)
+
     const [row] = await txn('doc_updates')
       .insert({
         doc_id: docId.toString(),
-        updates: Buffer.from(update),
+        structs: Buffer.from(
+          encodeUpdate({ structs, ds: { clients: new Map() } })
+        ),
+        ds: Buffer.from(encodeUpdate({ structs: [], ds })),
         sv: Buffer.from(Y.encodeStateVector(newSv))
       })
       .returning(['id'])
@@ -66,15 +71,18 @@ export const updates = {
     if (sv.size === 0) {
       // A common path is to get all updates, so don't do anything clever
       updateRows = await txn('doc_updates')
-        .select('updates')
+        .select('structs', 'ds')
         .where('doc_id', docId)
         .orderBy('pack_last_update_inserted_at')
+      return updateRows.map((update) =>
+        Y.mergeUpdates([update.structs, update.ds])
+      )
     } else {
       // To avoid fetching unnecessary update content we first check just the state vectors,
       // then return only the updates that are later than the given state vector. For clients
       // that are only partially out of sync, this avoids loading the content of older large
       // packs.
-      updateRows = await txn.transaction(async (txn) => {
+      return await txn.transaction(async (txn) => {
         // Wait for a transaction level shared lock for the document, so that
         // we don't do our two reads while a pack is going on that might delete
         // the updates we just read. A shared lock is fine because we're only reading here.
@@ -83,11 +91,11 @@ export const updates = {
           { docId }
         )
 
-        const updatesWithSvs = await txn('doc_updates')
-          .select('id', 'sv')
+        const allUpdatesPartial = await txn('doc_updates')
+          .select('id', 'sv', 'ds')
           .where('doc_id', docId)
 
-        const neededUpdates = updatesWithSvs.filter((update) => {
+        const neededUpdates = allUpdatesPartial.filter((update) => {
           const updateSv = Y.decodeStateVector(update.sv)
           for (const [client, updateClock] of updateSv.entries()) {
             const requestedClock = sv.get(client)
@@ -107,25 +115,27 @@ export const updates = {
           return false
         })
 
-        return await txn('doc_updates')
-          .select('updates')
+        const updatesWithStructs = await txn('doc_updates')
+          .select('structs')
           .where('doc_id', docId)
           .whereIn(
             'id',
             neededUpdates.map((u) => u.id)
           )
           .orderBy('pack_last_update_inserted_at')
+
+        return allUpdatesPartial
+          .map((update) => update.ds)
+          .concat(updatesWithStructs.map((update) => update.structs))
       })
     }
-
-    return updateRows.map((updates) => updates.updates)
   },
 
   async getUpdateById(docId: string, updateId: string, txn = db.knex) {
     const docUpdate = await txn('doc_updates')
       .where('doc_id', docId)
       .where('id', updateId)
-      .select('updates')
+      .select('structs', 'ds')
       .first()
 
     if (docUpdate === undefined) {
@@ -134,7 +144,7 @@ export const updates = {
       )
     }
 
-    return docUpdate.updates
+    return Y.mergeUpdates([docUpdate.structs, docUpdate.ds])
   },
 
   async tryPackUpdates(docId: string, txn = db.knex) {
@@ -185,11 +195,15 @@ export const updates = {
           // Pack Updates
           const updateIds = updates.map((u) => u.id)
           const originalUpdates = await txn('doc_updates')
-            .select('updates', 'sv', 'inserted_at')
+            .select('structs', 'ds', 'sv', 'inserted_at')
             .whereIn('id', updateIds)
           const packedYUpdate = packUpdates(
-            originalUpdates.map((u) => u.updates)
+            originalUpdates
+              .map((u) => u.structs)
+              .concat(originalUpdates.map((u) => u.ds))
           )
+          const { structs: packedStructs, ds: packedDs } =
+            Y.decodeUpdate(packedYUpdate)
           const packedSv = mergeSvs(originalUpdates.map((update) => update.sv))
           const maxInsertedAt = originalUpdates
             .map((u) => u.inserted_at)
@@ -199,7 +213,13 @@ export const updates = {
 
           await txn('doc_updates').insert({
             doc_id: docId,
-            updates: Buffer.from(packedYUpdate),
+            structs: Buffer.from(
+              encodeUpdate({
+                structs: packedStructs,
+                ds: { clients: new Map() }
+              })
+            ),
+            ds: Buffer.from(encodeUpdate({ structs: [], ds: packedDs })),
             sv: Buffer.from(Y.encodeStateVector(packedSv)),
             pack_level: level + 1,
             pack_last_update_inserted_at: maxInsertedAt

@@ -42,9 +42,11 @@ export const testWrapper = function (
     )
     const client = server.getClient({ token, connect })
 
-    client.maxConnectionAttemptDelay = 30
-    client.minConnectionAttemptDelay = 1
-    client.soonConnectionAttemptDelayThreshold = 5
+    client.connectionConfig({
+      maxConnectionAttemptDelay: 30,
+      minConnectionAttemptDelay: 1,
+      soonConnectionAttemptDelayThreshold: 5
+    })
 
     client.on('error', () => {
       // stop lots of expected errors being logged

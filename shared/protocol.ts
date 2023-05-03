@@ -9,6 +9,7 @@ import { BadRequestError } from './errors'
 type SessionDocId = string
 type YjsUpdate = Uint8Array
 type YjsStateVector = Uint8Array
+type AwarenessUpdate = Uint8Array
 
 export enum ProtocolVersion {
   v0 = 0
@@ -26,7 +27,8 @@ export enum MessageType {
   UPDATE_ACK = 21,
   UPDATE_ERROR = 22,
   ERROR_RESYNC = 30,
-  ERROR_FATAL = 31
+  ERROR_FATAL = 31,
+  AWARENESS_UPDATE = 40
 }
 
 export type SubscribeRequestMessage = {
@@ -101,6 +103,12 @@ export type ErrorFatalMessage = {
   errorMessage: string
 }
 
+export type AwarenessUpdateMessage = {
+  messageType: MessageType.AWARENESS_UPDATE,
+  sessionDocId: SessionDocId,
+  update: AwarenessUpdate
+}
+
 export type Message =
   | SubscribeRequestMessage
   | SubscribeResponseMessage
@@ -114,6 +122,7 @@ export type Message =
   | UpdateErrorMessage
   | ErrorResyncMessage
   | ErrorFatalMessage
+  | AwarenessUpdateMessage
 
 export const decodeMessage = (message: Uint8Array): Message => {
   const decoder = decoding.createDecoder(message)
@@ -233,6 +242,15 @@ export const decodeMessage = (message: Uint8Array): Message => {
         errorMessage
       }
     }
+    case MessageType.AWARENESS_UPDATE: {
+      const sessionDocId = decoding.readVarString(decoder)
+      const update = decoding.readVarUint8Array(decoder)
+      return {
+        messageType,
+        sessionDocId,
+        update
+      }
+    }
     default:
       throw new BadRequestError(`Unknown message type: ${messageType}`)
   }
@@ -306,6 +324,10 @@ export const encodeMessage = (message: Message): Uint8Array => {
       encoding.writeVarString(encoder, message.errorType)
       encoding.writeVarString(encoder, message.errorMessage)
       break
+    }
+    case MessageType.AWARENESS_UPDATE: {
+      encoding.writeVarString(encoder, message.sessionDocId)
+      encoding.writeVarUint8Array(encoder, message.update)
     }
   }
 

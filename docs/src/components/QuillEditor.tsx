@@ -1,21 +1,41 @@
 import React, { useEffect, useRef } from 'react'
+import Quill from 'quill'
+import QuillCursors from 'quill-cursors'
 import ReactQuill from 'react-quill'
 import { QuillBinding } from 'y-quill'
 import 'react-quill/dist/quill.snow.css'
-import { useFiresyncDoc } from '../firesync'
+import '../css/quill.css'
+import { useFireSync, useUniqueDocKey } from '../firesync'
 import { Y } from '@firesync/client'
+import { useAwareness, useRandomUser, useSubscribeToDoc } from '../hooks'
+
+Quill.register('modules/cursors', QuillCursors)
 
 type QuillEditorProps = {
   docKey: string
   initialValue: string
 }
 
-export function QuillEditor({ docKey, initialValue }: QuillEditorProps) {
+export function QuillEditor({
+  docKey: partialDocKey,
+  initialValue
+}: QuillEditorProps) {
   const quillRef = useRef<ReactQuill | null>(null)
-  const ydoc = useFiresyncDoc(docKey)
+  const firesync = useFireSync()
+  const docKey = useUniqueDocKey(partialDocKey)
+  const ydoc = useSubscribeToDoc(firesync, docKey)
+  const awareness = useAwareness(firesync, docKey)
+
+  const user = useRandomUser()
 
   useEffect(() => {
-    if (!ydoc) return
+    if (user && awareness) {
+      awareness.setLocalStateField('user', user)
+    }
+  }, [user, awareness])
+
+  useEffect(() => {
+    if (!ydoc || !awareness) return
 
     const sv = Y.decodeStateVector(Y.encodeStateVector(ydoc))
     if (sv.size === 0) {
@@ -29,13 +49,17 @@ export function QuillEditor({ docKey, initialValue }: QuillEditorProps) {
 
     // Bind the ydoc to the Quill editor
     const quill = quillRef.current?.editor
-    const binding = new QuillBinding(ydoc.getText('t'), quill)
+    const binding = new QuillBinding(ydoc.getText('t'), quill, awareness)
 
     // Tidy up everything on unmount
     return () => {
       binding.destroy()
     }
-  }, [ydoc])
+  }, [ydoc, awareness])
 
-  return <ReactQuill theme="snow" ref={quillRef} />
+  return (
+    <>
+      <ReactQuill theme="snow" ref={quillRef} modules={{ cursors: true }} />
+    </>
+  )
 }

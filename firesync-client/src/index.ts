@@ -5,6 +5,7 @@ import { FireSync } from './firesync'
 // equality. yjs will warn about this if you use multiple version and things
 // will randomly fail.
 export { Y } from './y'
+export { Awareness } from 'y-protocols/awareness'
 export { FireSync } from './firesync'
 export { LogLevel, setLogLevel } from './logging'
 export { MessageType } from './shared/protocol'

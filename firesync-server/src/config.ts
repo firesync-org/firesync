@@ -19,7 +19,7 @@ export const config = {
         : false
   },
   trustProxy: process.env.FS_TRUST_PROXY === 'true',
-  host: process.env.FS_HOST || 'localhost',
+  host: process.env.FS_HOST || '0.0.0.0',
   port: parseInt(process.env.FS_PORT || '5000'),
 
   // Internal only, but can be updated for testing via debugRouter

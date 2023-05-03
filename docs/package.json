@@ -14,6 +14,8 @@
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
     "generate:cli": "bash scripts/generate-cli.sh",
+    "generate:client": "bash scripts/generate-firesync-client.sh",
+    "watch:client": "nodemon --watch ../firesync-client/src --ext 'ts' --exec 'npm run generate:client'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -25,10 +27,12 @@
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",
     "prism-react-renderer": "^1.3.5",
+    "quill-cursors": "^4.0.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-quill": "^2.0.0",
     "redocusaurus": "^1.6.0",
+    "y-protocols": "^1.0.5",
     "y-quill": "^0.1.5"
   },
   "devDependencies": {
@@ -39,6 +43,7 @@
     "eslint-config-prettier": "^8.8.0",
     "eslint-config-prettier-standard": "^4.0.1",
     "eslint-plugin-standard": "^5.0.0",
+    "nodemon": "^2.0.22",
     "typescript": "^4.7.4"
   },
   "browserslist": {

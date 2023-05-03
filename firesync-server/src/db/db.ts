@@ -39,7 +39,8 @@ export type ProjectUserAuthProvider = {
 export type DocUpdate = {
   id: string // bigint is returned as a string
   doc_id: string
-  updates: Buffer
+  structs: Buffer
+  ds: Buffer
   sv: Buffer
   size: number
   pack_level: number

@@ -5,6 +5,8 @@ import models from '../../../server/models'
 import { config } from '../../../config'
 import { db } from '../../../db/db'
 import { svToString, updateToString } from '../../../shared/yUtils'
+import { docChannelName } from '../../../server/lib/Docs/DocStore'
+import { Y } from '../../../y'
 
 export default class WatchDoc extends Command {
   static description = 'Watch the update structure of a document'
@@ -40,8 +42,9 @@ export default class WatchDoc extends Command {
       for (const updateRow of updates) {
         const {
           id,
-          updates,
+          structs,
           sv,
+          ds,
           pack_last_update_inserted_at: packLastUpdateInsertedAt,
           pack_level: packLevel,
           size
@@ -51,14 +54,14 @@ export default class WatchDoc extends Command {
         console.log(
           `[${packLevel}] [${packLastUpdateInsertedAt.toISOString()}] {${svToString(
             sv
-          )}} ${size} ${updateToString(updates)}`
+          )}} ${size}\n${updateToString(Y.mergeUpdates([structs, ds]), '\n')}}`
         )
       }
     }
 
-    subscriber.notifications.on(`doc_updates:${docId}`, displayUpdates)
+    subscriber.notifications.on(docChannelName(docId), displayUpdates)
 
-    await subscriber.listenTo(`doc_updates:${docId}`)
+    await subscriber.listenTo(docChannelName(docId))
 
     await displayUpdates()
 

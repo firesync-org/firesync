@@ -5,9 +5,7 @@ import { docStore } from '../lib/Docs/DocStore'
 import {
   AuthError,
   BadRequestError,
-  FiresyncError,
-  MessageEncodingError,
-  UnexpectedInternalStateError
+  MessageEncodingError
 } from '../../shared/errors'
 import {
   decodeMessage,
@@ -17,7 +15,8 @@ import {
   SubscribeRequestMessage,
   StateVectorMessage,
   UpdateMessage,
-  UnsubscribeRequestMessage
+  UnsubscribeRequestMessage,
+  AwarenessUpdateMessage
 } from '../../shared/protocol'
 
 import { Session, auth } from './auth'
@@ -83,6 +82,9 @@ export class Connection extends EventEmitter {
           break
         case MessageType.UPDATE:
           await this.handleIncomingUpdates(message, this.id)
+          break
+        case MessageType.AWARENESS_UPDATE:
+          await this.handleIncomingAwarenessUpdate(message, this.id)
           break
         default:
           this.handleError(
@@ -334,14 +336,24 @@ export class Connection extends EventEmitter {
     )
   }
 
-  private getDocIdFromDocKeyOrError(docKey: string) {
-    const docId = this.docIdsByDocKeys.get(docKey)
-    if (docId === undefined) {
-      const error = new BadRequestError(`Doc is not subscribed: ${docKey}`)
-      this.handleError(error)
-      return null
-    }
-    return docId
+  async handleIncomingAwarenessUpdate(
+    { update, sessionDocId: docId }: AwarenessUpdateMessage,
+    source: string
+  ) {
+    logger.debug({ docId, source }, 'handleIncomingAwarenessUpdate')
+    docStore.publishAwareness(docId, update, source)
+  }
+
+  async sendAwarenessUpdate(docId: string, update: Uint8Array) {
+    logger.debug({ docId }, 'sendAwarenessUpdate')
+
+    this.ws.send(
+      encodeMessage({
+        messageType: MessageType.AWARENESS_UPDATE,
+        sessionDocId: docId,
+        update
+      })
+    )
   }
 
   private getDocKeyFromDocIdOrError(docId: string) {
@@ -414,6 +426,13 @@ export class Connection extends EventEmitter {
         }
       }
     )
+
+    docStore.on('awareness', (docId, update, source) => {
+      const connections = (this.connectionsByDocId[docId] || []).filter(
+        (conn) => source !== conn.id
+      )
+      connections.forEach((conn) => conn.sendAwarenessUpdate(docId, update))
+    })
 
     docStore.on('error', (docId: string, error: Error, source: string) => {
       const connections = this.connectionsByDocId[docId] || []

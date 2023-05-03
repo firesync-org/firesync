@@ -72,7 +72,7 @@ export const svToString = (sv: Uint8Array | Map<number, number>) => {
     .join(' ')
 }
 
-export const updateToString = (updates: Uint8Array | ReturnType<typeof Y.decodeUpdate>) => {
+export const updateToString = (updates: Uint8Array | ReturnType<typeof Y.decodeUpdate>, delimiter = ' ') => {
   if (updates instanceof Uint8Array) {
     updates = Y.decodeUpdate(updates)
   }
@@ -102,9 +102,9 @@ export const updateToString = (updates: Uint8Array | ReturnType<typeof Y.decodeU
     .join(' ')
 
   return [
-    structs.length > 0 ? `S: ${structsStr}` : '',
-    ds.clients.size > 0 ? `D: ${dsStr}` : ''
-  ].join(' ')
+    structs.length > 0 ? `S: ${structsStr}` : null,
+    ds.clients.size > 0 ? `D: ${dsStr}` : null
+  ].filter((s) => s !== null).join(delimiter)
 }
 
 export const filterUpdates = (
@@ -201,9 +201,13 @@ export const packUpdates = (updates: Uint8Array[]) => {
     currentItem = nextItem
   }
 
+  return encodeUpdate({ structs: newStructs, ds: yUpdate.ds })
+}
+
+export const encodeUpdate = (update: { structs: Struct[], ds: DeleteSet}) => {
   const clientStructs = new Map<number, Struct[]>()
 
-  for (const struct of newStructs) {
+  for (const struct of update.structs) {
     const clientId = struct.id.client
     if (!clientStructs.has(clientId)) {
       clientStructs.set(clientId, [])
@@ -231,7 +235,7 @@ export const packUpdates = (updates: Uint8Array[]) => {
       )
     })
 
-  writeDeleteSet(encoder, yUpdate.ds)
+  writeDeleteSet(encoder, update.ds)
 
   return encoder.toUint8Array()
 }
