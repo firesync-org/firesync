@@ -22,7 +22,7 @@
   "dependencies": {
     "@docusaurus/core": "2.3.1",
     "@docusaurus/preset-classic": "2.3.1",
-    "@firesync/client": "^0.0.1-alpha.5",
+    "@firesync/client": "^0.0.1-alpha.6",
     "@mdx-js/react": "^1.6.22",
     "clsx": "^1.2.1",
     "dotenv": "^16.0.3",
