@@ -57,9 +57,37 @@ const useUniqueNamespace = () => {
     return namespace
   }
 
-  namespace = window.crypto.randomUUID()
+  namespace = generateUUID()
   localStorage.setItem('namespace', namespace)
   window.location.hash = `namespace=${encodeURIComponent(namespace)}`
 
   return namespace
+}
+
+function generateUUID() {
+  // Generate a random 128-bit array
+  const array = new Uint8Array(16)
+  crypto.getRandomValues(array)
+
+  // Adjust the array to follow UUID version 4 rules
+  array[6] = (array[6] & 0x0f) | 0x40
+  array[8] = (array[8] & 0x3f) | 0x80
+
+  // Convert the array into a UUID string
+  const segments = [
+    array.slice(0, 4),
+    array.slice(4, 6),
+    array.slice(6, 8),
+    array.slice(8, 10),
+    array.slice(10, 16)
+  ]
+
+  return segments
+    .map((segment) => {
+      const hexArray = Array.from(segment, (byte) =>
+        byte.toString(16).padStart(2, '0')
+      )
+      return hexArray.join('')
+    })
+    .join('-')
 }
