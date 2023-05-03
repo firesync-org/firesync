@@ -18,9 +18,9 @@ The JWT should be crated and signed on your backend, where the shared secret is 
 <TabItem value="firesync-cloud" label="FireSync Cloud" default>
 ```
 
-:::danger TODO
+Your secrets can be found in your project settings in firesync cloud.
 
-:::
+![project-settings](/screenshots/project-settings.png)
 
 ```mdx-code-block
 </TabItem>
@@ -31,6 +31,12 @@ Configure your JWT secret with the [`FS_JWT_AUTH_SECRET`](/reference/firesync-se
 
 ```bash
 $ export FS_JWT_AUTH_SECRET='/B?E(H+KbPeShVmYq3t6w9zDC&F)J@Nc'
+```
+
+To generate a random secret from the command line you can use openssl:
+
+```bash
+$ openssl rand -base64 32
 ```
 
 ```mdx-code-block
