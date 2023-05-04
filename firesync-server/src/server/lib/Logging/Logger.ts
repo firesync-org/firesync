@@ -30,8 +30,9 @@ class Logger implements LoggerInterface {
       this.logger = logger.child(options)
     } else {
       this.logger = bunyan.createLogger({
-        name: 'server',
+        name: 'firesync-server',
         level: 'debug',
+        service: { name: process.env.OTEL_SERVICE_NAME },
         serializers: {
           update: updateSerializer,
           updates: updatesSerializer,
