@@ -24,7 +24,7 @@ describe('Auth', () => {
           expect(client.connected).to.equal(true)
         })
 
-        const ydoc = client.subscribe(docKey)
+        const ydoc = client.subscribeYDoc(docKey)
         ydoc.getText('').insert(0, 'foo')
 
         // Should be able to write
@@ -60,7 +60,7 @@ describe('Auth', () => {
           error = _error
         })
 
-        const ydoc = client.subscribe(docKey)
+        const ydoc = client.subscribeYDoc(docKey)
         ydoc.getText('').insert(0, 'foo')
 
         await tryUntil(async () => {
@@ -93,7 +93,7 @@ describe('Auth', () => {
       const readOnlyClient = server.getClient({ token })
 
       readOnlyClient.connect()
-      const readOnlyYDoc = client.subscribe(docKey)
+      const readOnlyYDoc = client.subscribeYDoc(docKey)
 
       await tryUntil(async () => {
         expect(readOnlyYDoc.getText('a').toJSON()).to.equal('hello world')
@@ -125,7 +125,7 @@ describe('Auth', () => {
           error = _error
         })
 
-        const ydoc = client.subscribe(docKey)
+        const ydoc = client.subscribeYDoc(docKey)
         ydoc.getText('').insert(0, 'foo')
 
         await tryUntil(async () => {
@@ -161,7 +161,7 @@ describe('Auth', () => {
         error = _error
       })
 
-      const ydoc = client.subscribe(docKey)
+      const ydoc = client.subscribeYDoc(docKey)
       ydoc.getText('').insert(0, 'foo')
 
       await tryUntil(async () => {
@@ -197,7 +197,7 @@ describe('Auth', () => {
         expect(client.connected).to.equal(true)
       })
 
-      const ydoc = client.subscribe(docKey)
+      const ydoc = client.subscribeYDoc(docKey)
       ydoc.getText('').insert(0, 'foo')
 
       // Should be able to write
@@ -228,7 +228,7 @@ describe('Auth', () => {
           expect(client.connected).to.equal(true)
         })
 
-        const ydoc = client.subscribe(docKey)
+        const ydoc = client.subscribeYDoc(docKey)
         ydoc.getText('').insert(0, 'foo')
 
         // Should be able to write

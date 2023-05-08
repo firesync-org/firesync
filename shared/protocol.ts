@@ -1,8 +1,3 @@
-// TODO:
-// Initial Version
-// Client User Agent + Version info (http header?)
-// Message logging
-
 import { decoding, encoding } from 'lib0'
 import { BadRequestError } from './errors'
 
@@ -11,11 +6,9 @@ type YjsUpdate = Uint8Array
 type YjsStateVector = Uint8Array
 type AwarenessUpdate = Uint8Array
 
-export enum ProtocolVersion {
-  v0 = 0
-}
-
 export enum MessageType {
+  HANDSHAKE_REQUEST = 50,
+  HANDSHAKE_RESPONSE = 51,
   SUBSCRIBE_REQUEST = 0,
   SUBSCRIBE_RESPONSE = 1,
   SUBSCRIBE_ERROR = 2,
@@ -29,6 +22,16 @@ export enum MessageType {
   ERROR_RESYNC = 30,
   ERROR_FATAL = 31,
   AWARENESS_UPDATE = 40
+}
+
+export type HandshakeRequestMessage = {
+  messageType: MessageType.HANDSHAKE_REQUEST,
+  protocolVersion: number,
+  userAgent: string
+}
+
+export type HandshakeResponseMessage = {
+  messageType: MessageType.HANDSHAKE_RESPONSE
 }
 
 export type SubscribeRequestMessage = {
@@ -110,6 +113,8 @@ export type AwarenessUpdateMessage = {
 }
 
 export type Message =
+  | HandshakeRequestMessage
+  | HandshakeResponseMessage
   | SubscribeRequestMessage
   | SubscribeResponseMessage
   | SubscribeErrorMessage
@@ -128,6 +133,20 @@ export const decodeMessage = (message: Uint8Array): Message => {
   const decoder = decoding.createDecoder(message)
   const messageType = decoding.readVarUint(decoder)
   switch (messageType) {
+    case MessageType.HANDSHAKE_REQUEST: {
+      const protocolVersion = decoding.readUint8(decoder)
+      const userAgent = decoding.readVarString(decoder)
+      return {
+        messageType,
+        protocolVersion,
+        userAgent
+      }
+    }
+    case MessageType.HANDSHAKE_RESPONSE: {
+      return {
+        messageType
+      }
+    }
     case MessageType.SUBSCRIBE_REQUEST: {
       const docKey = decoding.readVarString(decoder)
       return {
@@ -261,6 +280,14 @@ export const encodeMessage = (message: Message): Uint8Array => {
 
   encoding.writeVarUint(encoder, message.messageType)
   switch (message.messageType) {
+    case MessageType.HANDSHAKE_REQUEST: {
+      encoding.writeUint8(encoder, message.protocolVersion)
+      encoding.writeVarString(encoder, message.userAgent)
+      break
+    }
+    case MessageType.HANDSHAKE_RESPONSE: {
+      break
+    }
     case MessageType.SUBSCRIBE_REQUEST: {
       encoding.writeVarString(encoder, message.docKey)
       break

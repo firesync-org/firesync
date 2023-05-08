@@ -36,9 +36,9 @@ describe('Packing Updates', () => {
         const UPDATE_COUNT = 10
 
         const client2 = server.getClient({ token })
-        const ydoc2 = client2.subscribe(docKey)
+        const ydoc2 = client2.subscribeYDoc(docKey)
         const client3 = server.getClient({ token })
-        const ydoc3 = client3.subscribe(docKey)
+        const ydoc3 = client3.subscribeYDoc(docKey)
 
         await server.setConfig({
           packAfterNUpdates: PACK_AFTER_N_UPDATES,

@@ -63,7 +63,7 @@ const useDoc = (firesync: FireSync | undefined, docKey: string) => {
   const [doc, setDoc] = useState<Y.Doc>()
   useEffect(() => {
     if (!firesync) return
-    const doc = firesync.subscribe(docKey)
+    const doc = firesync.subscribeYDoc(docKey)
     setDoc(doc)
     return () => {
       firesync.unsubscribe(docKey)
@@ -78,7 +78,7 @@ const useAwarenessRaw = (firesync: FireSync | undefined, docKey: string) => {
 
   useEffect(() => {
     if (!firesync) return
-    const awareness = firesync.awareness(docKey)
+    const awareness = firesync.subscribeAwareness(docKey)
     setAwareness(awareness)
   }, [firesync])
 
@@ -92,7 +92,7 @@ const useAwareness = (firesync: FireSync | undefined, docKey: string) => {
 
   useEffect(() => {
     if (!firesync) return
-    const awareness = firesync.awareness(docKey)
+    const awareness = firesync.subscribeAwareness(docKey)
     const onChange = () => {
       setAwareness(Object.fromEntries(awareness.getStates()))
     }

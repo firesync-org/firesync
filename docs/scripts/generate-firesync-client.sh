@@ -11,5 +11,5 @@ DOCS_DIR=$FIRESYNC_DIR/docs/docs/reference/firesync-client
 
 cd $FIRESYNC_CLIENT_DIR && (
 cat $DOCS_DIR/_firesync-client-header.md > $DOCS_DIR/firesync-client.md
-npx jsdoc2md --files src/firesync.ts --configure jsdoc.json >> $DOCS_DIR/firesync-client.md
+npx jsdoc2md --files src/firesync.ts --files src/monaco/index.ts --configure jsdoc.json >> $DOCS_DIR/firesync-client.md
 )

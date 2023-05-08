@@ -10,6 +10,9 @@ import {
 } from './shared/errors'
 import EventEmitter from 'events'
 import { FIRESYNC_SERVER_ORIGIN } from './firesync'
+import logging from './logging'
+
+const logger = logging('docs')
 
 enum SubscriptionStates {
   SUBSCRIBING,
@@ -22,6 +25,11 @@ type AwarenessUpdate = {
   added: number[]
   removed: number[]
   updated: number[]
+}
+
+export type AwarenessUser = {
+  name?: string
+  color?: string
 }
 
 export declare interface Doc {
@@ -37,15 +45,24 @@ export class Doc extends EventEmitter {
   docKey: string
   ydoc: Y.Doc
   awareness?: Awareness
+  initialize?: (ydoc: Y.Doc) => void
   currentSubscriptionState: SubscriptionStates = SubscriptionStates.UNSUBSCRIBED
   desiredSubscriptionState: SubscriptionStates = SubscriptionStates.UNSUBSCRIBED
   sentInitialUpdate = false
   private sessionDocId?: string
 
-  constructor(docKey: string, ydoc: Y.Doc) {
+  constructor(docKey: string, ydoc: Y.Doc, initialize?: (ydoc: Y.Doc) => void) {
     super()
     this.docKey = docKey
     this.ydoc = ydoc
+    this.initialize = initialize
+
+    ydoc.on('sync', (isSynced) => {
+      logger.debug('ydoc sync state changed:', isSynced)
+      if (isSynced) {
+        this.initializeDoc()
+      }
+    })
   }
 
   get readyToSendUpdate() {
@@ -88,6 +105,7 @@ export class Doc extends EventEmitter {
     this.sentInitialUpdate = false
     this.emit('unsubscribed', this.sessionDocId)
     delete this.sessionDocId
+    this.ydoc.emit('sync', [false])
   }
 
   setUnsubscribing() {
@@ -126,7 +144,34 @@ export class Doc extends EventEmitter {
     return this.desiredSubscriptionState === SubscriptionStates.UNSUBSCRIBED
   }
 
-  initAwareness(awareness?: Awareness) {
+  setSynced() {
+    this.ydoc.emit('sync', [true])
+  }
+
+  /**
+   * If there is no content in the doc yet, set our client id to 0 and apply
+   * the initialize callback to add some initial content to the doc. By using
+   * a deterministic client ID of 0, initializing multiple with the same content
+   * is idempotent. It is important the initialize method does not change though.
+   */
+  private initializeDoc() {
+    const initialize = this.initialize
+    if (initialize) {
+      const sv = Y.decodeStateVector(Y.encodeStateVector(this.ydoc))
+      if (sv.size === 0) {
+        const clientID = this.ydoc.clientID
+        // Use clientID 0 for the default content so that we always use the same clientID,
+        // so if we do it multiple times it has no effect
+        this.ydoc.clientID = 0
+        this.ydoc.transact(() => {
+          initialize(this.ydoc)
+        })
+        this.ydoc.clientID = clientID
+      }
+    }
+  }
+
+  initAwareness(awareness?: Awareness, user?: AwarenessUser) {
     // Default to existing this.awareness if exists, otherwise
     // create new Awareness instance
     if (awareness === undefined) {
@@ -168,6 +213,10 @@ export class Doc extends EventEmitter {
       )
     }
 
+    if (user) {
+      this.updateAwarenessUser(user)
+    }
+
     return awareness
   }
 
@@ -178,6 +227,12 @@ export class Doc extends EventEmitter {
   bumpAwareness() {
     if (this.awareness) {
       this.awareness.setLocalState(this.awareness.getLocalState())
+    }
+  }
+
+  updateAwarenessUser(user: AwarenessUser) {
+    if (this.awareness) {
+      this.awareness.setLocalStateField('user', user)
     }
   }
 }
@@ -246,19 +301,23 @@ export class Docs extends EventEmitter {
    * @param docKey The key that identified the document in the FireSync backend
    * @param ydoc An optional existing Y.Doc to use rather than creating a new instance
    */
-  init(docKey: string, ydoc?: Y.Doc) {
+  init(
+    docKey: string,
+    ydoc?: Y.Doc | null,
+    initialize?: (ydoc: Y.Doc) => void
+  ) {
     // Make sure we have a doc and that we aren't overwriting an
     // existing one
     let doc = this.docs.get(docKey)
     if (doc === undefined) {
-      if (ydoc === undefined) {
+      if (!ydoc) {
         ydoc = new Y.Doc()
       }
       ydoc.on('update', (update: Uint8Array, origin: any) => {
         this.emit('update', docKey, update, origin)
       })
 
-      doc = new Doc(docKey, ydoc)
+      doc = new Doc(docKey, ydoc, initialize)
       doc.on('subscribed', (sessionDocId) => {
         this.docKeysByDocIds[sessionDocId] = docKey
       })
@@ -300,5 +359,9 @@ export class Docs extends EventEmitter {
     return Array.from(this.docs.values())
       .filter((doc) => doc.wantToBeSubscribed)
       .map((doc) => doc.docKey)
+  }
+
+  updateAwarenessUser(user: AwarenessUser) {
+    this.docs.forEach((doc) => doc.updateAwarenessUser(user))
   }
 }

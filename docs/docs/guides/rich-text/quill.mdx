@@ -22,7 +22,7 @@ This rich text editor below is a Quill instance connected to FireSync. Open this
   }}
 </BrowserOnly>
 
-## Implementation
+## Code Example
 
 ```mdx-code-block
 <Tabs groupId="frontend-language">
@@ -58,11 +58,11 @@ function CollaborativeQuillEditor() {
     // Subscribe to the document. Any local updates to this doc
     // will be sent to the server, and any updates from
     // other users will also get synced to this doc
-    const doc = firesync.subscribe(docKey)
+    const doc = firesync.subscribeYDoc(docKey)
 
     // Get a shared Awareness instance for syncing online status and cursor
     // positions between users.
-    const awareness = firesync.awareness(docKey)
+    const awareness = firesync.subscribeAwareness(docKey)
 
     // Bind the doc and awareness to the Quill editor
     const quill = quillRef.current.editor

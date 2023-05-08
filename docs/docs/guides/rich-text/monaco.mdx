@@ -1,7 +1,47 @@
+import BrowserOnly from '@docusaurus/BrowserOnly';
+
 # Monaco
 
-:::danger TODO
+FireSync can bind to the [Monaco Editor](https://microsoft.github.io/monaco-editor/) to create a real-time collaborative code editor with just a few lines of code.
 
-Coming soon!
+See [FireSyncMonacoBinding reference](/reference/firesync-client/#FireSyncMonacoBinding) for more information
+
+## Live Example
+
+:::info Live Example
+
+This rich text editor below is a Monaco instance connected to FireSync. Open this page in another browser to see the collaboration in action, or share this URL with someone else.
 
 :::
+
+<BrowserOnly>
+  {() => {
+    const { MonacoEditor } = require('@site/src/components/MonacoEditor');
+    return <MonacoEditor docKey="rich-text-monaco" initialValue={"# Monaco Editor\n\nThis editor supports real-time collaboration.\nOpen in another tab to try it out!"} />
+  }}
+</BrowserOnly>
+
+## Code Example
+
+```js
+import FireSync from '@firesync/client'
+import { FireSyncMonacoBinding } from '@firesync/client/monaco'
+import * as monaco from 'monaco-editor'
+
+const firesync = new FireSync({
+  // A JWT access token signed by your backend
+  token: '<your-token>',
+  // Your FireSync Cloud project name
+  projectName: 'acme-dev',
+  // Or if running FireSync yourself locally:
+  // baseUrl: 'http://localhost:5000',
+})
+
+const editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+  value: '', // Gets overwritten when FireSync doc syncs
+  language: "javascript"
+})
+
+// Bind FireSync to the Monaco editor
+new FireSyncMonacoBinding(firesync, 'my-doc-name', editor)
+```

@@ -1,18 +1,36 @@
 {
   "name": "@firesync/client",
-  "version": "0.0.1-alpha.6",
+  "version": "0.0.1-alpha.7",
   "description": "An open source platform for building real-time collaboration apps",
   "author": "FireSync",
   "license": "Apache-2.0",
   "main": "dist/cjs/index.js",
   "module": "dist/mjs/index.js",
   "types": "dist/mjs/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/mjs/index.d.ts",
+      "default": "./dist/mjs/index.js"
+    },
+    "./monaco": {
+      "require": "./dist/cjs/monaco",
+      "types": "./dist/mjs/monaco/index.d.ts",
+      "default": "./dist/mjs/monaco"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "monaco": ["dist/mjs/monaco/index.d.ts"]
+    }
+  },
   "source": "src/index.ts",
   "files": [
     "dist/"
   ],
   "scripts": {
     "clean": "rimraf dist/",
+    "prebuild": "node -p \"'// eslint-disable-next-line prettier/prettier\\nexport const LIB_VERSION = ' + JSON.stringify(require('./package.json').version)\" > src/version.ts",
     "build": "npm run clean && concurrently 'tsc --project tsconfig.build-mjs.json' 'tsc --project tsconfig.build-cjs.json'",
     "watch": "npm run clean && concurrently 'tsc --project tsconfig.build-mjs.json --watch' 'tsc --project tsconfig.build-cjs.json --watch'",
     "lint": "eslint src/",
@@ -29,6 +47,7 @@
     "events": "^3.3.0",
     "lib0": "^0.2.58",
     "uuid": "^9.0.0",
+    "y-monaco": "^0.1.4",
     "y-protocols": "^1.0.5",
     "y-quill": "^0.1.5"
   },

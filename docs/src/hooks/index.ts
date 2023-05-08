@@ -9,7 +9,7 @@ export const useSubscribeToDoc = (
   const [doc, setDoc] = useState<Y.Doc>()
   useEffect(() => {
     if (!firesync) return
-    const doc = firesync.subscribe(docKey)
+    const doc = firesync.subscribeYDoc(docKey)
     setDoc(doc)
     return () => {
       firesync.unsubscribe(docKey)
@@ -27,7 +27,7 @@ export const useAwareness = (
 
   useEffect(() => {
     if (!firesync) return
-    const awareness = firesync.awareness(docKey)
+    const awareness = firesync.subscribeAwareness(docKey)
     setAwareness(awareness)
   }, [firesync])
 
@@ -44,7 +44,7 @@ export const useAwarenessStates = (
 
   useEffect(() => {
     if (!firesync) return
-    const awareness = firesync.awareness(docKey)
+    const awareness = firesync.subscribeAwareness(docKey)
     const onChange = () => {
       setAwareness(Object.fromEntries(awareness.getStates()))
     }
@@ -54,68 +54,3 @@ export const useAwarenessStates = (
 
   return awareness
 }
-
-export const useRandomUser = () => {
-  const [user, setUser] = useState<{ name: string; color: string }>()
-
-  if (!user) {
-    setUser({
-      name: [randomAdjective(), randomAnimal()].join(' '),
-      color: `hsl(${Math.floor(Math.random() * 360)} 100% 30%)`
-    })
-  }
-
-  return user
-}
-
-function randomEntry<T>(list: T[]) {
-  return list[Math.floor(Math.random() * list.length)]
-}
-
-const randomAdjective = () =>
-  randomEntry([
-    'Bubbly',
-    'Zany',
-    'Spunky',
-    'Quirky',
-    'Wacky',
-    'Whimsical',
-    'Cheeky',
-    'Silly',
-    'Goofy',
-    'Playful',
-    'Zesty',
-    'Jazzy',
-    'Sassy',
-    'Funky',
-    'Dapper',
-    'Groovy',
-    'Snazzy',
-    'Dashing',
-    'Sprightly',
-    'Peppy'
-  ])
-
-const randomAnimal = () =>
-  randomEntry([
-    'Narwhal',
-    'Axolotl',
-    'Pangolin',
-    'Quokka',
-    'Meerkat',
-    'Fennec Fox',
-    'Red Panda',
-    'Sloth',
-    'Llama',
-    'Alpaca',
-    'Capibara',
-    'Hedgehog',
-    'Kangaroo',
-    'Platypus',
-    'Otter',
-    'Puma',
-    'Toucan',
-    'Wallaby',
-    'Salamander',
-    'Chinchilla'
-  ])

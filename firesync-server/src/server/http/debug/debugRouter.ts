@@ -85,6 +85,10 @@ export const debugRouter = () => {
     if (typeof waitSecondsBeforePacking === 'number') {
       config.waitSecondsBeforePacking = waitSecondsBeforePacking
     }
+    const jwtAuthSecrets = req.body.jwtAuthSecrets
+    if (jwtAuthSecrets) {
+      process.env.FS_JWT_AUTH_SECRET = jwtAuthSecrets.join(',')
+    }
     res.send('OK')
   })
 

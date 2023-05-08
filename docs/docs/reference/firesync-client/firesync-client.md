@@ -20,6 +20,8 @@ import FireSync from '@firesync/client'
 <dl>
 <dt><a href="#FireSync">FireSync</a></dt>
 <dd></dd>
+<dt><a href="#FireSyncMonacoBinding">FireSyncMonacoBinding</a></dt>
+<dd></dd>
 </dl>
 
 ## Typedefs
@@ -27,6 +29,12 @@ import FireSync from '@firesync/client'
 <dl>
 <dt><a href="#FireSyncOptions">FireSyncOptions</a> : <code>object</code></dt>
 <dd><p>Parameters used to configure a new instance of a FireSync client.</p></dd>
+<dt><a href="#SubscribeYDocOptions">SubscribeYDocOptions</a> : <code>object</code></dt>
+<dd><p>Options for firesync.subscribeYDoc</p></dd>
+<dt><a href="#SubscribeAwarenessOptions">SubscribeAwarenessOptions</a> : <code>object</code></dt>
+<dd><p>Options for firesync.subscribeAwareness</p></dd>
+<dt><a href="#FireSyncMonacoBindingOptions">FireSyncMonacoBindingOptions</a> : <code>object</code></dt>
+<dd><p>Options for FireSyncMonacoBinding</p></dd>
 </dl>
 
 <a name="FireSync"></a>
@@ -39,9 +47,9 @@ import FireSync from '@firesync/client'
     * [.connected](#FireSync+connected) ⇒ <code>boolean</code>
     * [.connect()](#FireSync+connect)
     * [.disconnect()](#FireSync+disconnect)
-    * [.subscribe(docKey, [ydoc])](#FireSync+subscribe) ⇒ <code>Y.Doc</code>
+    * [.subscribeYDoc(docKey, options)](#FireSync+subscribeYDoc) ⇒ <code>Y.Doc</code>
     * [.unsubscribe(docKey)](#FireSync+unsubscribe)
-    * [.awareness(docKey, [awareness])](#FireSync+awareness) ⇒ <code>Awareness</code>
+    * [.subscribeAwareness(docKey, [awareness])](#FireSync+subscribeAwareness) ⇒ <code>Awareness</code>
 
 <a name="new_FireSync_new"></a>
 
@@ -104,9 +112,9 @@ firesync.connect()
 ```js
 firesync.disconnect()
 ```
-<a name="FireSync+subscribe"></a>
+<a name="FireSync+subscribeYDoc"></a>
 
-### firesync.subscribe(docKey, [ydoc]) ⇒ <code>Y.Doc</code>
+### firesync.subscribeYDoc(docKey, options) ⇒ <code>Y.Doc</code>
 <p>Subscribe to changes to the given document and return the
 a Yjs <a href="/guides/yjs">Y.Doc</a> which is kept in sync with the FireSync backend.</p>
 <p>Any changes made locally to the Y.Doc will be sent to other subscribed clients, and
@@ -118,11 +126,11 @@ the Y.Doc will received any changes made by other clients.</p>
 | Param | Type | Description |
 | --- | --- | --- |
 | docKey | <code>string</code> | <p>The key that identifies the document in the FireSync backend</p> |
-| [ydoc] | <code>Y.Doc</code> | <p>An optional Y.Doc to use rather than returning a new instance</p> |
+| options | [<code>SubscribeYDocOptions</code>](#SubscribeYDocOptions) |  |
 
 **Example**  
 ```js
-const doc = firesync.subscribe('foo')
+const doc = firesync.subscribeYDoc('foo')
 doc.on('update', () => {
   // Will recieve local changes and changes from
   // other subscribed clients
@@ -146,9 +154,9 @@ clients or send changes made locally to the server.</p>
 ```js
 firesync.unsubscribe('foo')
 ```
-<a name="FireSync+awareness"></a>
+<a name="FireSync+subscribeAwareness"></a>
 
-### firesync.awareness(docKey, [awareness]) ⇒ <code>Awareness</code>
+### firesync.subscribeAwareness(docKey, [awareness]) ⇒ <code>Awareness</code>
 <p>Returns an Awareness instance which is synced with the FireSync backend
 and will send any awareness updates to other clients and receive awareness
 updates from other clients.</p>
@@ -160,6 +168,45 @@ updates from other clients.</p>
 | docKey | <code>string</code> | <p>The key that identified the document in the FireSync backend</p> |
 | [awareness] | <code>Awareness</code> | <p>An optional Awareness instance to use rather than returning a new instance</p> |
 
+<a name="FireSyncMonacoBinding"></a>
+
+## FireSyncMonacoBinding
+**Kind**: global class  
+
+* [FireSyncMonacoBinding](#FireSyncMonacoBinding)
+    * [new FireSyncMonacoBinding(firesync, docKey, editor, [options])](#new_FireSyncMonacoBinding_new)
+    * [.destroy()](#FireSyncMonacoBinding+destroy)
+
+<a name="new_FireSyncMonacoBinding_new"></a>
+
+### new FireSyncMonacoBinding(firesync, docKey, editor, [options])
+<p>Create a new instance of FireSyncMonacoBinding to connect a Monaco editor instance
+to a document that is synced via FireSync.</p>
+
+
+| Param | Type | Description |
+| --- | --- | --- |
+| firesync | [<code>FireSync</code>](#FireSync) | <p>A FireSync instance</p> |
+| docKey | <code>string</code> | <p>The key of the document to bind the Monaco editor to</p> |
+| editor | <code>IStandaloneCodeEditor</code> | <p>A Monaco editor instance</p> |
+| [options] | [<code>FireSyncMonacoBindingOptions</code>](#FireSyncMonacoBindingOptions) | <p>Configuration options</p> |
+
+**Example**  
+```js
+import { FireSyncMonacoBinding } from '@firesync/client/monaco'
+
+const editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+  value: '', // Gets overwritten when FireSync doc syncs
+  language: "javascript"
+})
+const binding = new FireSyncMonacoBinding(firesync, 'my-doc-key', editor)
+```
+<a name="FireSyncMonacoBinding+destroy"></a>
+
+### binding.destroy()
+<p>Remove the connection between the Monaco editor and the FireSync document</p>
+
+**Kind**: instance method of [<code>FireSyncMonacoBinding</code>](#FireSyncMonacoBinding)  
 <a name="FireSyncOptions"></a>
 
 ## FireSyncOptions : <code>object</code>
@@ -169,9 +216,9 @@ updates from other clients.</p>
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| baseUrl | <code>string</code> |  | <p>The URL of your own firesync-server.</p> |
-| projectName | <code>string</code> |  | <p>The name of your project in FireSync Cloud.</p> |
 | token | <code>string</code> |  | <p>A JWT signed with your project secret with a list of docs that the client can access. See <a href="/guides/authentication">Authentication</a> for more information</p> |
+| [baseUrl] | <code>string</code> |  | <p>The URL of your own firesync-server.</p> |
+| [projectName] | <code>string</code> |  | <p>The name of your project in FireSync Cloud.</p> |
 | [connect] | <code>boolean</code> | <code>true</code> | <p>Whether FireSync should immediately connect to the server. Defaults to <code>true</code> if not provided.</p> |
 | [CustomWebSocket] | <code>WebSocket</code> | <code>window.WebSocket</code> | <p>Can be used to pass in a custom WebSocket implementation. This is useful for using a FireSync client instance on the server, where can pass in the WebSocket implementation from the <a href="https://www.npmjs.com/package/ws"><code>ws</code> library</a>.</p> |
 
@@ -188,5 +235,72 @@ new FireSync({
 
   // Whether to connect to the server immediately
   connect: true
+})
+```
+<a name="SubscribeYDocOptions"></a>
+
+## SubscribeYDocOptions : <code>object</code>
+<p>Options for firesync.subscribeYDoc</p>
+
+**Kind**: global typedef  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [ydoc] | <code>Y.Doc</code> | <p>An optional existing Y.Doc to use rather than returning a new instance</p> |
+| [initialize] | <code>function</code> | <p>A method which is called with the ydoc to set some initial content. This is only called after the ydoc is synced to the server and if there is no existing data in it. Any updates are done with clientID 0, so that if multiple clients set the same content, there is no conflict. <strong>This must always be called with the same content on different clients otherwise the doc could be inconsistent if two clients try to initialize different content concurrently.</strong></p> |
+
+**Example**  
+```js
+firesync.subscribeYDoc('my-doc', {
+  ydoc: new Y.Doc(),
+  initialize: (ydoc) => {
+    ydoc.getText('foo').insert(0, 'Initial content')
+    ydoc.getMap('bar').set('hello', 'world')
+  }
+})
+```
+<a name="SubscribeAwarenessOptions"></a>
+
+## SubscribeAwarenessOptions : <code>object</code>
+<p>Options for firesync.subscribeAwareness</p>
+
+**Kind**: global typedef  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [awareness] | <code>Awareness</code> | <p>An optional existing Awareness instance to use rather than returning a new instance</p> |
+
+**Example**  
+```js
+firesync.subscribeAwareness('my-doc', {
+  awareness: new Awareness()
+})
+```
+<a name="FireSyncMonacoBindingOptions"></a>
+
+## FireSyncMonacoBindingOptions : <code>object</code>
+<p>Options for FireSyncMonacoBinding</p>
+
+**Kind**: global typedef  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [cursors] | <code>boolean</code> | <code>true</code> | <p>Show cursors and names of other connected clients. The name and color can be set with <code>firesync.setUserDisplayName</code> and <code>firesync.setUserColor</code> on each client</p> |
+| [textKey] | <code>string</code> | <code>&quot;default&quot;</code> | <p>The key to use to get a Y.Text instance from the Y.Doc. The Monaco editor is synced to the Y.Text instance at ydoc.getText(textKey)</p> |
+| [ytext] | <code>Y.Text</code> |  | <p>A Y.Text instance to bind to the Monaco editor. This is useful for Y.Text instances that are nested within your Y.Doc.</p> |
+| [awareness] | <code>Awareness</code> |  | <p>An existing Awareness instance to use for sharing cursor location and names between connected clients.</p> |
+| [initialValue] | <code>string</code> |  | <p>An initial value to set on the Y.Text instance. See the <code>initialize</code> function in <a href="/reference/firesync-client/#subscribeydocoptions--object">SubscribeYDocOptions</a> for more information.</p> |
+
+**Example**  
+```js
+// Example with custom Y.Text instance nested with Y.Doc:
+const ydoc = firesync.subscribeYDoc('my-doc-key')
+const ytext = new Y.Text()
+// Y.Text instance must be part of doc
+ydoc.getMap('foo').set('bar', ytext)
+new FireSyncMonacoBinding(firesync, 'my-doc-key', editor, {
+  ytext: ytext,
+  initialValue: 'Hello world',
+  cursors: false
 })
 ```

@@ -16,7 +16,8 @@ import {
   StateVectorMessage,
   UpdateMessage,
   UnsubscribeRequestMessage,
-  AwarenessUpdateMessage
+  AwarenessUpdateMessage,
+  HandshakeRequestMessage
 } from '../../shared/protocol'
 
 import { Session, auth } from './auth'
@@ -71,6 +72,9 @@ export class Connection extends EventEmitter {
 
     try {
       switch (message.messageType) {
+        case MessageType.HANDSHAKE_REQUEST:
+          await this.handleIncomingHandshakeRequest(message)
+          break
         case MessageType.SUBSCRIBE_REQUEST:
           await this.handleIncomingSubscribeRequest(message)
           break
@@ -94,6 +98,22 @@ export class Connection extends EventEmitter {
     } catch (error) {
       this.handleError(error as Error)
     }
+  }
+
+  async handleIncomingHandshakeRequest({
+    protocolVersion,
+    userAgent
+  }: HandshakeRequestMessage) {
+    logger.info({ userAgent, protocolVersion }, 'connection handshake')
+    await this.sendHandshakeResponse()
+  }
+
+  async sendHandshakeResponse() {
+    this.ws.send(
+      encodeMessage({
+        messageType: MessageType.HANDSHAKE_RESPONSE
+      })
+    )
   }
 
   async handleIncomingSubscribeRequest({ docKey }: SubscribeRequestMessage) {
@@ -226,6 +246,8 @@ export class Connection extends EventEmitter {
     logger.debug({ docKey, sv }, 'handleIncomingStateVector')
 
     // Send the client any updates it is missing from its state vector
+    // We still want to send this even if it's empty since it triggers
+    // the client to know the document is synced
     const update = await docStore.getStateAsUpdate(docId.toString(), sv)
     logger.debug(
       { docKey, update },
@@ -234,7 +256,7 @@ export class Connection extends EventEmitter {
     this.sendUpdate(docId, update)
 
     // When the client sends a state vector, this is the start of a
-    // two sync, so send our state vector back to get any updates from
+    // two way sync, so send our state vector back to get any updates from
     // the client we don't have.
     this.sendStateVector(docId.toString())
   }

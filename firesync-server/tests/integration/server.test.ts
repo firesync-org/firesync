@@ -7,29 +7,26 @@ import { tryUntil, testWrapper } from './utils'
 describe('Server Syncing', () => {
   test(
     'client needs the entire doc',
-    testWrapper(
-      {},
-      async ({ docKey, client: client1, server, ydoc: ydoc1, token }) => {
-        // Set up 2 docs with content in sync
-        const yText1 = ydoc1.getText('t')
-        yText1.insert(0, 'foobaz')
-        yText1.insert(3, 'bar')
+    testWrapper({}, async ({ docKey, server, ydoc: ydoc1, token }) => {
+      // Set up 2 docs with content in sync
+      const yText1 = ydoc1.getText('t')
+      yText1.insert(0, 'foobaz')
+      yText1.insert(3, 'bar')
 
-        await tryUntil(async () => {
-          const sv = await server.getDocStateVector(docKey)
-          expect(sv[ydoc1.clientID]).to.equal(9)
-        })
+      await tryUntil(async () => {
+        const sv = await server.getDocStateVector(docKey)
+        expect(sv[ydoc1.clientID]).to.equal(9)
+      })
 
-        const ydoc2 = new Y.Doc()
-        const client2 = server.getClient({ token })
-        client2.subscribe(docKey, ydoc2)
+      const ydoc2 = new Y.Doc()
+      const client2 = server.getClient({ token })
+      client2.subscribeYDoc(docKey, { ydoc: ydoc2 })
 
-        const yText2 = ydoc2.getText('t')
-        await tryUntil(async () => {
-          expect(yText2.toString()).to.equal('foobarbaz')
-        })
-      }
-    )
+      const yText2 = ydoc2.getText('t')
+      await tryUntil(async () => {
+        expect(yText2.toString()).to.equal('foobarbaz')
+      })
+    })
   )
 
   test(
@@ -64,7 +61,7 @@ describe('Server Syncing', () => {
           })
         })
 
-        client2.subscribe(docKey, ydoc2)
+        client2.subscribeYDoc(docKey, { ydoc: ydoc2 })
 
         // Check that recieved update only contains 'bar'
         const update = Y.decodeUpdate(await receivedUpdate)
@@ -119,7 +116,7 @@ describe('Server Syncing', () => {
       // subscribe to doc 2
       const client2 = server.getClient({ token })
 
-      client2.subscribe(docKey, ydoc2)
+      client2.subscribeYDoc(docKey, { ydoc: ydoc2 })
 
       await tryUntil(async () => {
         expect(yText2.toString()).to.equal('foo baz')
@@ -166,7 +163,7 @@ describe('Server Syncing', () => {
         yText.insert(0, 'bar')
 
         client.connect()
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
 
         await tryUntil(async () => {
           const sv = await server.getDocStateVector(docKey)
@@ -220,7 +217,7 @@ describe('Server Syncing', () => {
         yText.insert(0, 'foo')
 
         client.connect()
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
 
         await tryUntil(async () => {
           const sv = await server.getDocStateVector(docKey)

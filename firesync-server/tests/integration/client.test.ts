@@ -168,7 +168,7 @@ describe('Client', () => {
         text.insert(0, 'foo')
 
         client.chaosMonkey.syncAfterSubscribe = false
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
 
         await tryUntil(async () => {
           expect(client.connected).to.equal(true)
@@ -224,7 +224,7 @@ describe('Client', () => {
         // e.g.
         //
         //    useEffect(() => {
-        //      firesync.client.subscribe(docKey, ydoc)
+        //      firesync.client.subscribeYDoc(docKey, ydoc)
         //      return () => {
         //        firesync.client.unsubscribe(docKey)
         //      }
@@ -235,9 +235,9 @@ describe('Client', () => {
         //   subscribe
         //   unsubscribe
         //   subscribe
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
         client.unsubscribe(docKey)
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
 
         await tryUntil(async () => {
           expect(client.isSubscribed(docKey)).to.equal(true)
@@ -256,7 +256,7 @@ describe('Client', () => {
     test(
       'subscribing and unsubscribing',
       testWrapper({ subscribe: false }, async ({ docKey, ydoc, client }) => {
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
         expect(client.isSubscribing(docKey)).to.equal(true)
 
         await tryUntil(async () => {
@@ -271,7 +271,7 @@ describe('Client', () => {
         })
 
         // Do it again to check state has reset properly
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
         expect(client.isSubscribing(docKey)).to.equal(true)
 
         await tryUntil(async () => {
@@ -307,8 +307,8 @@ describe('Client', () => {
           clientA.token = token
 
           clientA.connect()
-          const ydoc1a = clientA.subscribe(docKey1)
-          const ydoc2a = clientA.subscribe(docKey2)
+          const ydoc1a = clientA.subscribeYDoc(docKey1)
+          const ydoc2a = clientA.subscribeYDoc(docKey2)
 
           // Wait till subscribed
           await tryUntil(async () => {
@@ -323,8 +323,8 @@ describe('Client', () => {
           const ydoc1b = new Y.Doc()
           const ydoc2b = new Y.Doc()
           const clientB = server.getClient({ token })
-          clientB.subscribe(docKey1, ydoc1b)
-          clientB.subscribe(docKey2, ydoc2b)
+          clientB.subscribeYDoc(docKey1, { ydoc: ydoc1b })
+          clientB.subscribeYDoc(docKey2, { ydoc: ydoc2b })
 
           await tryUntil(async () => {
             expect(ydoc1b.getText('').toJSON()).to.equal('foo')
@@ -360,8 +360,8 @@ describe('Client', () => {
           )
           clientA.token = token
 
-          clientA.subscribe(docKey1, ydoc1a)
-          clientA.subscribe(docKey2, ydoc2a)
+          clientA.subscribeYDoc(docKey1, { ydoc: ydoc1a })
+          clientA.subscribeYDoc(docKey2, { ydoc: ydoc2a })
 
           // Connect after subscribing
           clientA.connect()
@@ -379,8 +379,8 @@ describe('Client', () => {
           const ydoc1b = new Y.Doc()
           const ydoc2b = new Y.Doc()
           const clientB = server.getClient({ token })
-          clientB.subscribe(docKey1, ydoc1b)
-          clientB.subscribe(docKey2, ydoc2b)
+          clientB.subscribeYDoc(docKey1, { ydoc: ydoc1b })
+          clientB.subscribeYDoc(docKey2, { ydoc: ydoc2b })
 
           await tryUntil(async () => {
             expect(ydoc1b.getText('').toJSON()).to.equal('foo')
@@ -396,7 +396,7 @@ describe('Client', () => {
         { subscribe: false },
         async ({ client: clientA, docKey, ydoc: ydocA, server, token }) => {
           // Subscribe and send updates before server has acknowledged
-          clientA.subscribe(docKey, ydocA)
+          clientA.subscribeYDoc(docKey, { ydoc: ydocA })
           expect(clientA.isSubscribed(docKey)).to.equal(false)
           ydocA.getText('').insert(0, 'foo')
 
@@ -408,7 +408,7 @@ describe('Client', () => {
           // Should synced to other client
           const ydocB = new Y.Doc()
           const clientB = server.getClient({ token })
-          clientB.subscribe(docKey, ydocB)
+          clientB.subscribeYDoc(docKey, { ydoc: ydocB })
 
           await tryUntil(async () => {
             expect(ydocB.getText('').toJSON()).to.equal('foo')

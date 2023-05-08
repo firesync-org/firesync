@@ -7,7 +7,7 @@ import 'react-quill/dist/quill.snow.css'
 import '../css/quill.css'
 import { useFireSync, useUniqueDocKey } from '../firesync'
 import { Y } from '@firesync/client'
-import { useAwareness, useRandomUser, useSubscribeToDoc } from '../hooks'
+import { useAwareness, useSubscribeToDoc } from '../hooks'
 
 Quill.register('modules/cursors', QuillCursors)
 
@@ -25,14 +25,6 @@ export function QuillEditor({
   const docKey = useUniqueDocKey(partialDocKey)
   const ydoc = useSubscribeToDoc(firesync, docKey)
   const awareness = useAwareness(firesync, docKey)
-
-  const user = useRandomUser()
-
-  useEffect(() => {
-    if (user && awareness) {
-      awareness.setLocalStateField('user', user)
-    }
-  }, [user, awareness])
 
   useEffect(() => {
     if (!ydoc || !awareness) return

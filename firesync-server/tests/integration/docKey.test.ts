@@ -41,7 +41,7 @@ describe('docKey', () => {
           error = _error
         })
 
-        const ydoc = client.subscribe(docKey)
+        const ydoc = client.subscribeYDoc(docKey)
         ydoc.getText('').insert(0, 'foo')
 
         await tryUntil(async () => {

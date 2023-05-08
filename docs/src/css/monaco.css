@@ -1,0 +1,32 @@
+.yRemoteSelection {
+  background-color: var(--user-color);
+  opacity: 0.4;
+}
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: var(--user-color) solid 2px;
+  border-top: var(--user-color) solid 2px;
+  border-bottom: var(--user-color) solid 2px;
+  height: 100%;
+  box-sizing: border-box;
+}
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: ' ';
+  border: 3px solid var(--user-color);
+  border-radius: 4px;
+  left: -4px;
+  top: -5px;
+}
+
+.yRemoteSelectionHead:hover::before {
+  position: absolute;
+  content: var(--user-name);
+  color: white;
+  padding: 2px 6px;
+  border: 3px solid var(--user-color);
+  background-color: var(--user-color);
+  border-radius: 4px;
+  left: -4px;
+  bottom: calc(100%);
+}

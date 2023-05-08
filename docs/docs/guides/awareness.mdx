@@ -12,18 +12,10 @@ FireSync supports the [Yjs Awareness Protocol](https://docs.yjs.dev/api/about-aw
 
 Let's look at a quick example showing how to use awareness to track online users.
 
-
-:::tip Subscribe to doc
-
-To use awareness, you must first subscribe to the doc with the same `docKey` with `firesync.subscribe(docKey)`.
-
-:::
-
-
 ```js
 const docKey = 'my-document'
-firesync.subscribe(docKey)
-const awareness = firesync.awareness(docKey)
+firesync.subscribeYDoc(docKey)
+const awareness = firesync.subscribeAwareness(docKey)
 
 // Listen for changes to who is connected
 awareness.on('change', () => {
@@ -61,8 +53,8 @@ When a client disconnects, their entry is automatically removed from the awarene
 The bindings for rich-text editors like [Quill](/guides/rich-text/quill) can use an awareness instance to sync data about where users cursors are:
 
 ```js
-const doc = firesync.subscribe(docKey)
-const awareness = firesync.awareness(docKey)
+const doc = firesync.subscribeYDoc(docKey)
+const awareness = firesync.subscribeAwareness(docKey)
 const quill = document.getElementById('quill')
 const binding = new QuillBinding(doc.getText('t'), quill, awareness)
 ```

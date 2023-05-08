@@ -10,12 +10,12 @@ export const config = {
     ssl:
       process.env.FS_DATABASE_SSL === 'true'
         ? {
-          rejectUnauthorized:
-            process.env.FS_DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
-          ca: process.env.FS_DATABASE_SSL_CA,
-          key: process.env.FS_DATABASE_SSL_KEY,
-          cert: process.env.FS_DATABASE_SSL_CERT
-        }
+            rejectUnauthorized:
+              process.env.FS_DATABASE_SSL_REJECT_UNAUTHORIZED === 'true',
+            ca: process.env.FS_DATABASE_SSL_CA,
+            key: process.env.FS_DATABASE_SSL_KEY,
+            cert: process.env.FS_DATABASE_SSL_CERT
+          }
         : false
   },
   trustProxy: process.env.FS_TRUST_PROXY === 'true',

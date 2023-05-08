@@ -95,7 +95,7 @@ const firesync = new FireSync({
   token: token, // JWT token Generated above from your server
 });
 
-const doc = firesync.subscribe("foo");
+const doc = firesync.subscribeYDoc("foo");
 
 // Get a real-time map that we can set key, value pairs on
 const map = doc.getMap("bar");
@@ -122,7 +122,7 @@ const firesync = new FireSync({
   token: token, // JWT token Generated above from your server
 });
 
-const doc = firesync.subscribe("foo");
+const doc = firesync.subscribeYDoc("foo");
 
 // Get a real-time map that we can set key, value pairs in
 const map = doc.getMap("bar");

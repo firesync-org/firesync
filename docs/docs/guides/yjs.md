@@ -11,7 +11,7 @@ FireSync is compatible with the [Yjs library](https://github.com/yjs/yjs). Yjs p
 The top level object in Yjs is a *doc* (`Y.Doc`) and each doc can contain [Text](#text), [Maps](#map) and [Arrays](#array). Any nested combination of these types can be used in a single doc and they will be automatically synced between FireSync and anyone else subscribed to that doc. For example:
 
 ```js
-const doc = firesync.subscribe("my-document");
+const doc = firesync.subscribeYDoc("my-document");
 const ymap = doc.getMap("a");
 const ytext = doc.getText("b");
 const yarray = doc.getArray("c");
@@ -20,7 +20,7 @@ const yarray = doc.getArray("c");
 ## Text
 
 ```js
-const doc = firesync.subscribe("my-document");
+const doc = firesync.subscribeYDoc("my-document");
 
 const ytext = doc.getText("foo");
 
@@ -37,7 +37,7 @@ See [Y.Text](https://docs.yjs.dev/api/shared-types/y.text) in the Yjs documentat
 ## Map
 
 ```js
-const doc = firesync.subscribe("my-document");
+const doc = firesync.subscribeYDoc("my-document");
 
 const ymap = doc.getMap("foo");
 
@@ -56,7 +56,7 @@ See [Y.Map](https://docs.yjs.dev/api/shared-types/y.map) in the Yjs documentatio
 ## Array
 
 ```js
-const doc = firesync.subscribe("my-document");
+const doc = firesync.subscribeYDoc("my-document");
 const yarray = doc.getArray("foo");
 
 // Adding elements to the array

@@ -58,7 +58,7 @@ export const testWrapper = function (
       })
 
       if (subscribe) {
-        client.subscribe(docKey, ydoc)
+        client.subscribeYDoc(docKey, { ydoc })
         await tryUntil(async () => {
           expect(client.isSubscribed(docKey)).to.equal(true)
           expect(client.hasSentInitialUpdate(docKey)).to.equal(true)

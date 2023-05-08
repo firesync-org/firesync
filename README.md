@@ -107,7 +107,7 @@ const firesync = new FireSync({
   token: token // Generated above
 })
 
-const doc = firesync.subscribe('foo')
+const doc = firesync.subscribeYDoc('foo')
 
 // Get a real-time map that we can set key, value pairs in
 const map = doc.getMap('bar') 
@@ -122,7 +122,7 @@ map.set('age', 42)
 map.set('awesome', true)
 ```
 
-The `doc` returned by `firesync.subscribe` is a [Yjs](https://docs.firesync.dev/guides/yjs) doc that supports complex data structures with nested maps, lists and rich-text types.
+The `doc` returned by `firesync.subscribeYDoc` is a [Yjs](https://docs.firesync.dev/guides/yjs) doc that supports complex data structures with nested maps, lists and rich-text types.
 
 ## Collaborative Rich-Text Editing
 
@@ -152,7 +152,7 @@ function CollaborativeQuillEditor() {
     // Subscribe to the document. Any local updates to this doc
     // will be sent to the server, and any updates from
     // other users will also get synced to this doc
-    const doc = firesync.subscribe(docKey)
+    const doc = firesync.subscribeYDoc(docKey)
 
     // Bind the doc to the Quill editor
     const quill = quillRef.current.editor

@@ -1,5 +1,6 @@
 import { FireSync } from '@firesync/client'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
+import { randomUser } from './randomUser'
 
 let firesync: FireSync | undefined
 
@@ -23,6 +24,11 @@ export const useFireSync = () => {
     baseUrl,
     token
   })
+
+  const user = randomUser()
+  firesync.setUserDisplayName(user.name)
+  firesync.setUserColor(user.color)
+
   return firesync
 }
 

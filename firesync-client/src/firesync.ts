@@ -21,13 +21,19 @@ import {
   ErrorFatalMessage,
   UnsubscribeResponseMessage,
   UnsubscribeErrorMessage,
-  AwarenessUpdateMessage
+  AwarenessUpdateMessage,
+  HandshakeResponseMessage
 } from './shared/protocol'
 import logging from './logging'
-import { BadRequestError, ErrorsByName } from './shared/errors'
+import {
+  BadRequestError,
+  ErrorsByName,
+  UnexpectedInternalStateError
+} from './shared/errors'
 import { packUpdates } from './shared/yUtils'
 import { Connection } from './connection'
-import { Docs } from './docs'
+import { AwarenessUser, Docs } from './docs'
+import { LIB_VERSION } from './version'
 
 const logger = logging('firesync')
 
@@ -50,10 +56,10 @@ export declare interface FireSync {
  * Parameters used to configure a new instance of a FireSync client.
  * @typedef FireSyncOptions
  * @type {object}
- * @param {string} baseUrl The URL of your own firesync-server.
- * @param {string} projectName The name of your project in FireSync Cloud.
  * @param {string} token A JWT signed with your project secret with a list of docs that
  * the client can access. See [Authentication](/guides/authentication) for more information
+ * @param {string} [baseUrl] The URL of your own firesync-server.
+ * @param {string} [projectName] The name of your project in FireSync Cloud.
  * @param {boolean} [connect=true] Whether FireSync should immediately connect to the
  * server. Defaults to `true` if not provided.
  * @param {WebSocket} [CustomWebSocket=window.WebSocket] Can be used to pass in a custom WebSocket
@@ -89,6 +95,47 @@ type FireSyncOptions = UrlOptions & {
   connect?: boolean
   CustomWebSocket?: any
 }
+
+/**
+ * Options for firesync.subscribeYDoc
+ * @typedef SubscribeYDocOptions
+ * @type {object}
+ * @param {Y.Doc=} [ydoc] An optional existing Y.Doc to use rather than returning a new instance
+ * @param {function} [initialize] A method which is called with the ydoc to set some
+ * initial content. This is only called after the ydoc is synced to the server and if there is no
+ * existing data in it. Any updates are done with clientID 0, so that if multiple clients set the
+ * same content, there is no conflict.
+ * **This must always be called with the same content on different clients otherwise the doc could
+ * be inconsistent if two clients try to initialize different content concurrently.**
+ * @example
+ * ```js
+ * firesync.subscribeYDoc('my-doc', {
+ *   ydoc: new Y.Doc(),
+ *   initialize: (ydoc) => {
+ *     ydoc.getText('foo').insert(0, 'Initial content')
+ *     ydoc.getMap('bar').set('hello', 'world')
+ *   }
+ * })
+ * ```
+ */
+type SubscribeYDocOptions = {
+  ydoc?: Y.Doc | null
+  initialize?: (ydoc: Y.Doc) => void
+}
+
+/**
+ * Options for firesync.subscribeAwareness
+ * @typedef SubscribeAwarenessOptions
+ * @type {object}
+ * @param {Awareness=} [awareness] An optional existing Awareness instance to use rather than returning a new instance
+ * @example
+ * ```js
+ * firesync.subscribeAwareness('my-doc', {
+ *   awareness: new Awareness()
+ * })
+ * ```
+ */
+type SubscribeAwarenessOptions = { awareness?: Awareness }
 
 /**
  * @typicalname firesync
@@ -196,7 +243,7 @@ export class FireSync extends EventEmitter {
    *
    * @example
    * ```js
-   * const doc = firesync.subscribe('foo')
+   * const doc = firesync.subscribeYDoc('foo')
    * doc.on('update', () => {
    *   // Will recieve local changes and changes from
    *   // other subscribed clients
@@ -206,11 +253,14 @@ export class FireSync extends EventEmitter {
    * ```
    *
    * @param {string} docKey The key that identifies the document in the FireSync backend
-   * @param {Y.Doc} [ydoc] An optional Y.Doc to use rather than returning a new instance
+   * @param {SubscribeYDocOptions} options
    * @returns {Y.Doc}
    */
-  subscribe(docKey: string, ydoc?: Y.Doc) {
-    const doc = this.docs.init(docKey, ydoc)
+  subscribeYDoc(
+    docKey: string,
+    { ydoc, initialize }: SubscribeYDocOptions = {}
+  ) {
+    const doc = this.docs.init(docKey, ydoc, initialize)
 
     // We might be re-subscribing to an existing unsubscribed doc
     doc.setWantToBeSubscribed()
@@ -270,6 +320,10 @@ export class FireSync extends EventEmitter {
     return this.docs.get(docKey)?.isUnsubscribing
   }
 
+  hasSentInitialUpdate(docKey: string) {
+    return this.docs.getOrError(docKey)?.sentInitialUpdate === true
+  }
+
   /**
    * Returns an Awareness instance which is synced with the FireSync backend
    * and will send any awareness updates to other clients and receive awareness
@@ -279,13 +333,31 @@ export class FireSync extends EventEmitter {
    * @param {Awareness} [awareness] An optional Awareness instance to use rather than returning a new instance
    * @returns {Awareness}
    */
-  awareness(docKey: string, awareness?: Awareness) {
-    const doc = this.docs.init(docKey)
-    return doc.initAwareness(awareness)
+  subscribeAwareness(
+    docKey: string,
+    { awareness }: SubscribeAwarenessOptions = {}
+  ) {
+    // Make sure we are subscribed
+    this.subscribeYDoc(docKey)
+    const doc = this.docs.get(docKey)
+    if (!doc) {
+      throw new UnexpectedInternalStateError(
+        'Expected doc to have been inited when subscribed'
+      )
+    }
+    return doc.initAwareness(awareness, this.awarenessUser)
   }
 
-  hasSentInitialUpdate(docKey: string) {
-    return this.docs.getOrError(docKey)?.sentInitialUpdate === true
+  private awarenessUser: AwarenessUser = {}
+
+  setUserDisplayName(name: string) {
+    this.awarenessUser.name = name
+    this.docs.updateAwarenessUser(this.awarenessUser)
+  }
+
+  setUserColor(color: string) {
+    this.awarenessUser.color = color
+    this.docs.updateAwarenessUser(this.awarenessUser)
   }
 
   get stats() {
@@ -393,17 +465,7 @@ export class FireSync extends EventEmitter {
       this.docs.resetSubscriptionStates()
     })
     connection.on('open', () => {
-      this.docs.keysToSubscribe.forEach((docKey) => {
-        try {
-          this.sendSubscribeRequest(docKey)
-        } catch (error) {
-          if (error instanceof Error) {
-            this.handleError(error)
-          } else {
-            throw error
-          }
-        }
-      })
+      this.sendHandshakeRequest()
     })
     connection.on('message', (event) => {
       this.handleWebsocketMessage(event)
@@ -412,6 +474,7 @@ export class FireSync extends EventEmitter {
       this.handleError(error)
     })
     connection.on('disconnect', () => {
+      this.docs.resetSubscriptionStates()
       this.docs.removeAwarenessStates()
     })
     return connection
@@ -520,6 +583,9 @@ export class FireSync extends EventEmitter {
   // Sync Protocol
   private handleSyncMessage(message: Message) {
     switch (message.messageType) {
+      case MessageType.HANDSHAKE_RESPONSE:
+        this.handleHandshakeResponse(message)
+        break
       case MessageType.SUBSCRIBE_RESPONSE:
         this.handleSubscribeResponse(message)
         break
@@ -558,6 +624,23 @@ export class FireSync extends EventEmitter {
           new BadRequestError(`Unknown message type: ${message.messageType}`)
         )
     }
+  }
+
+  private sendHandshakeRequest() {
+    this.connection.send(
+      encodeMessage({
+        messageType: MessageType.HANDSHAKE_REQUEST,
+        protocolVersion: 1,
+        userAgent: `@firesync/client@${LIB_VERSION}`
+      })
+    )
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private handleHandshakeResponse(_message: HandshakeResponseMessage) {
+    this.docs.keysToSubscribe.forEach((docKey) => {
+      this.sendSubscribeRequest(docKey)
+    })
   }
 
   private sendSubscribeRequest(docKey: string) {
@@ -637,12 +720,6 @@ export class FireSync extends EventEmitter {
         sessionDocId
       })
     )
-  }
-
-  private sendUnsubscribeRequestIfConnected(docKey: string) {
-    if (this.connection.connected) {
-      this.sendUnsubscribeRequest(docKey)
-    }
   }
 
   private handleUnsubscribeResponse({
@@ -820,6 +897,11 @@ export class FireSync extends EventEmitter {
       Y.applyUpdate(doc.ydoc, update, FIRESYNC_SERVER_ORIGIN)
 
       this.emit('update', docKey, update)
+
+      // Getting our first set of updates after sending the state
+      // vector is our best indicator of being synced. Doing this
+      // multiple times on future updates should be a no-op
+      doc.setSynced()
     })
   }
 
