@@ -59,7 +59,11 @@ const useUniqueNamespace = () => {
 
   namespace = localStorage.getItem('namespace')
   if (namespace) {
-    window.location.hash = `namespace=${encodeURIComponent(namespace)}`
+    history.replaceState(
+      null,
+      '',
+      `#namespace=${encodeURIComponent(namespace)}`
+    )
     return namespace
   }
 
